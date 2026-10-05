@@ -1,23 +1,11 @@
-# NIA Hyderabad visitor landing page
+# NIA Hyderabad — visitor page and team CRM
 
-Static landing page for the 14 October 2026 visitor event at Novotel HICC Hyderabad, 6–9 PM IST followed by dinner. Visitor fee: ₹2,600 including taxes and dinner.
+Visitor landing page and private staff CRM share one Supabase project. GitHub Pages serves the frontend. Supabase handles email login, protected records, conversation history and validated visitor intake.
 
-## Hosting
+Features: right-side sticky visitor form, WhatsApp handoff, campaign attribution, eight-stage pipeline, owner assignment, IST callback scheduling, overdue/today/upcoming queues, append-only conversations, CSV export and source conversion summaries.
 
-In repository Settings → Pages, select Deploy from a branch, main, / (root). The site uses relative asset links and requires no build step.
+Event: 14 October 2026, 6–9 PM followed by dinner, Novotel HICC Hyderabad. Visitor fee ₹2,600 including taxes and dinner. **Online payments remain disabled** pending Razorpay keys, verified order/webhook integration and approved refund terms. A visitor enquiry is not a booking.
 
-## Current status
+Schema order for a new environment: crm-schema.sql, crm-upgrade.sql, intake-schema.sql. Invite staff and explicitly authorize their UUID in crm_staff. Deploy visitor-intake.ts; this is a public write-only endpoint. All staff tables remain protected by row-level security. Never commit a service key or Razorpay secret.
 
-- NIA branding, event details and enquiry form are included.
-- WhatsApp handoff targets +91 7997994493. Visitors must press Send.
-- Form entries are not persisted. CRM integration is pending.
-- Payment button displays a setup-pending notice; it does not take payment.
-- Meta tracking, full privacy notice and cancellation/refund terms are pending.
-
-## Security and integrations
-
-GitHub Pages serves static files only. Razorpay secret keys, webhook verification and authenticated CRM requests must run in a separate server-side service. Never put secret keys in these files or commit them to this repository.
-
-## Local preview
-
-Run `python3 -m http.server 8080` from this folder and open http://localhost:8080.
+The CRM workflows from nia-hyderabad-lead-dashboard have been adapted to Supabase. Its MySQL runtime and Manus OAuth are not required by this app. Existing MySQL data has not been imported.
