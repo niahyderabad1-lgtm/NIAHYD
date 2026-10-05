@@ -16,7 +16,8 @@ Deno.serve(async(req:Request)=>{
   let phone=clean('phone',18).replace(/\D/g,'');if(phone.length===10)phone='91'+phone;
   if(!/^91[6-9][0-9]{9}$/.test(phone))return reply(400,{error:'Enter a valid Indian mobile number'});
   if(!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(b.request_id))return reply(400,{error:'Invalid request identifier'});
-  const attribution:Record<string,string>={event:'2026-10-14',consent_at:new Date().toISOString()};
+  if(b.years_in_business!==undefined&&b.years_in_business!==''&&(!Number.isInteger(Number(b.years_in_business))||Number(b.years_in_business)<0||Number(b.years_in_business)>150))return reply(400,{error:'Check years in business'});
+  const attribution:Record<string,string>={years_in_business:String(b.years_in_business||''),event:'2026-10-14',consent_at:new Date().toISOString()};
   for(const k of ['utm_source','utm_medium','utm_campaign','utm_content','utm_term'])attribution[k]=String(b.attribution?.[k]||'').slice(0,200);
   const secret=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const ip=req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()||'unknown';
