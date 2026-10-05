@@ -5,7 +5,7 @@ const params=new URLSearchParams(location.search),attribution={};for(const k of 
 const testPayments=params.get('test_payment')==='1';
 const api=async body=>{const r=await fetch(config.supabaseUrl+'/functions/v1/visitor-intake',{method:'POST',headers:{'Content-Type':'application/json',apikey:config.publishableKey},body:JSON.stringify(body)});const result=await r.json();if(!r.ok)throw Error(result.error||'Unable to complete this request.');return result;};
 const checkoutScript=()=>new Promise((resolve,reject)=>{if(window.Razorpay)return resolve();const script=document.createElement('script');script.src='https://checkout.razorpay.com/v1/checkout.js';script.onload=()=>resolve();script.onerror=()=>reject(Error('Unable to open Razorpay. Please retry.'));document.head.append(script);});
-if(testPayments){document.querySelector('.preview').textContent='TEST CHECKOUT · No real money is collected and no event seat is reserved.';form.querySelector('button[value="payment"]').textContent='Try test checkout · ₹2,600';document.querySelector('.micro').textContent='Test payments simulate checkout only. Your enquiry is saved in the CRM. No seat is reserved.';}
+if(testPayments){document.querySelector('.preview').textContent='TEST CHECKOUT · No real money is collected and no event seat is reserved.';form.querySelector('button[value="payment"]').textContent='Try test checkout · ₹2,600';form.querySelector('.micro').textContent='Test payments simulate checkout only. Your enquiry is saved in the CRM. No seat is reserved.';}
 const openTestCheckout=async data=>{
  const paymentRequestId=requestId;
  const order=await api({action:'create_order',request_id:paymentRequestId});
