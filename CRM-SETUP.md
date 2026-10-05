@@ -18,4 +18,6 @@ The CRM screen is at `crm.html` alongside the visitor page. Until Supabase is co
 - Finalise privacy notice, cancellation/refund terms and retention rules.
 - Add campaign source capture and Meta conversion tracking.
 
+The database tables, access policies, administrator membership and email redirect are configured. Staff use email sign-in links.
+
 The CRM does not yet receive landing-page enquiries automatically. WhatsApp conversations are not synced automatically; staff can record notes manually after secure setup.
