@@ -10,3 +10,6 @@ Before live launch: live orders kept separately from tests, signed webhook recon
 
 ## Event cancellation terms supplied by NIA
 Visitor cancellations are non-refundable. If NIA cancels the event, visitors receive a full refund or a pass for the next event. Displayed next to the form and in the footer.
+
+## Test webhook
+Set RAZORPAY_WEBHOOK_SECRET in Supabase. Configure Razorpay Test Mode webhook URL https://mtrfipelhvuvqkjwgiif.supabase.co/functions/v1/visitor-intake?webhook=razorpay with that same secret and events payment.captured and order.paid. Webhooks require valid raw-body HMAC and API payment/order confirmation. Unknown test orders are acknowledged without creating records. Duplicate verified notifications are idempotent. No staff table authentication settings change. Live keys are refused.
