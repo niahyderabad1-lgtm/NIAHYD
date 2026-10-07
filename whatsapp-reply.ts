@@ -1,7 +1,7 @@
 const origin='https://niahyderabad1-lgtm.github.io';
 Deno.serve(async(req:Request)=>{
  const headers={'Content-Type':'application/json','Access-Control-Allow-Origin':origin,'Access-Control-Allow-Headers':'authorization,apikey,content-type','Access-Control-Allow-Methods':'POST,OPTIONS','Vary':'Origin'};
- const reply=(status:number,data:unknown)=>new Response(JSON.stringify(data),{status,headers});
+ const reply=(status:number,data:any)=>new Response(JSON.stringify({...data,...(data.error?{message:data.error+(data.code?' (Meta '+data.code+')':'')}: {})}),{status,headers});
  if(req.method==='OPTIONS')return new Response(null,{status:204,headers});
  if(req.method!=='POST')return reply(405,{error:'POST required'});
  if(req.headers.get('origin')!==origin)return reply(403,{error:'Origin denied'});
@@ -32,7 +32,7 @@ Deno.serve(async(req:Request)=>{
    const sent=await fetch('https://graph.facebook.com/v25.0/'+number+'/messages',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({messaging_product:'whatsapp',to:contact_id,type:'text',text:{body}}),signal:AbortSignal.timeout(15000)});
    const result=await sent.json();
    if(!sent.ok){await patch('failed');return reply(400,{error:'Meta rejected message',code:result.error?.code});}
-   const message_id=result.messages?.[0]?.id;const stored=await patch('accepted',message_id||null);
+   const message_id=result.messages?.[0]?.id;if(!message_id){await patch('uncertain');return reply(502,{error:'Meta returned no message ID. Check delivery before resending.'});}const stored=await patch('accepted',message_id);
    return reply(200,{state:stored.ok?'accepted':'uncertain',message_id});
   }catch{await patch('uncertain');return reply(502,{error:'Send result uncertain. Check delivery before resending.'});}
  }catch{return reply(500,{error:'Unable to process reply'});}
