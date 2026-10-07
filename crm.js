@@ -32,3 +32,27 @@ $('#activity-form').addEventListener('submit',async event=>{event.preventDefault
 $('#export').addEventListener('click',()=>{const columns=['name','phone','company','category','email','stage','payment_status','owner','next_follow_up_at','next_action','source'];const safe=v=>{let s=String(v??'');if(/^[=+@\-\t\r]/.test(s))s="'"+s;return '"'+s.replaceAll('"','""')+'"'};const query=$('#search').value.toLowerCase();const rows=leads.filter(queueMatches).filter(l=>(!$('#stage-filter').value||l.stage===$('#stage-filter').value)&&[l.name,l.company,l.category,l.phone].some(v=>(v||'').toLowerCase().includes(query)));const data=[columns,...rows.map(l=>columns.map(k=>l[k]))].map(r=>r.map(safe).join(',')).join('\r\n');const url=URL.createObjectURL(new Blob(['\uFEFF'+data],{type:'text/csv;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='nia-leads-'+new Date().toISOString().slice(0,10)+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)});
 
 function renderCampaignStats(){const groups=new Map();for(const l of leads){const key=l.attribution?.utm_campaign||l.source||'Unspecified';const value=groups.get(key)||{total:0,paid:0,joined:0};value.total++;value.paid+=l.payment_status==='paid'?1:0;value.joined+=l.stage==='Joined'?1:0;groups.set(key,value)}const root=$('#campaign-stats');root.replaceChildren();for(const [key,v] of groups){const p=document.createElement('p');p.textContent=key+': '+v.total+' leads · '+v.paid+' paid visitors · '+v.joined+' joined · '+Math.round(100*v.paid/v.total)+'% paid conversion';root.append(p)}}
+
+$('#wa-refresh').addEventListener('click',async()=>{
+ const root=$('#wa-events');root.replaceChildren();
+ if(demo){$('#wa-status').textContent='Sample mode: WhatsApp is disconnected. No messages are sent.';return;}
+ const button=$('#wa-refresh');button.disabled=true;
+ try{
+  const events=await request('/rest/v1/wa_events?select=kind,contact_id,event_at,body,status&order=event_at.desc&limit=100');
+  $('#wa-status').textContent=events.length?'Latest 100 events from the broadcast number.':'No WhatsApp events recorded yet.';
+  for(const e of events){const box=document.createElement('article');box.className='activity';const title=document.createElement('strong');title.textContent=e.contact_id+' · '+(e.kind==='incoming'?'Incoming reply':e.status);const time=document.createElement('small');time.textContent=indiaTime(e.event_at);const body=document.createElement('p');body.textContent=e.body;box.append(title,time,body);root.append(box);}
+ }catch{$('#wa-status').textContent='WhatsApp storage is not connected yet. Complete the backend setup first.';}
+ finally{button.disabled=false;}
+});
+
+let waReplyAttempt=null;
+$('#wa-reply-form').addEventListener('submit',async event=>{
+ event.preventDefault();const status=$('#wa-reply-status');
+ if(demo){status.textContent='Sample mode cannot send WhatsApp messages.';return;}
+ const f=new FormData(event.currentTarget);const body=f.get('body').trim(),contact_id=f.get('contact_id').trim();
+ if(!waReplyAttempt||waReplyAttempt.body!==body||waReplyAttempt.contact_id!==contact_id)waReplyAttempt={request_id:crypto.randomUUID(),body,contact_id};
+ const button=event.currentTarget.querySelector('button');button.disabled=true;
+ try{const result=await request('/functions/v1/whatsapp-reply',{method:'POST',body:JSON.stringify(waReplyAttempt)});status.textContent=result.state==='accepted'?'Meta accepted the reply. Check delivery updates.':'Send state: '+result.state+'. Refresh before trying again.';}
+ catch(e){status.textContent=e.message;}
+ finally{button.disabled=false;}
+});
