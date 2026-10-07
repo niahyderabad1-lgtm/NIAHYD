@@ -18,3 +18,8 @@ Incoming STOP, UNSUBSCRIBE or OPT OUT suppress future queued sends. Uncertain at
 Secrets belong only in Supabase. Never commit access tokens, app secrets or service-role keys. The campaign and reply functions validate signed-in staff and retain gateway JWT verification. The webhook uses raw-body HMAC signature validation.
 
 Database setup files are one-time migrations. Do not rerun creation statements on an existing installation. Tables use staff-only read access; mutations pass through staff-validated functions.
+
+## WA Broadcast tab
+Template builder supports English US marketing templates, one name variable {{1}}, optional footer and static website button. Header types: text, JPG/PNG image, MP4 video, PDF document; maximum upload5MB. Upload creates Meta example handle and phone-number media ID. Stored media IDs may expire; attach a fresh file before resending an older media template. No approval is implied by saving a draft. Sync Meta statuses; only approved supported templates are selectable. One template is chosen per campaign using table checkboxes. Current Meta approval and template content are checked again before recipient claims.
+CSV/XLSX/XLS import reads the first worksheet locally using vendoredSheetJS0.20.3. RequiredName/Phone, optionalCompany. Maximum2,000rows/5MB; ten-digitIndian numbers normalize to91; previewflagsinvalid/duplicates. Saving isupsertedbyphone in100-recordbatches. Consentisrecordedseparately;importdoesnotoptincontacts. Checked opted-in contacts or pipelinefilteredleads canbe selected.
+One-time migrations after campaign schema: whatsapp-template-schema.sql, whatsapp-broadcast-upgrade.sql. Deploy whatsapp-templates.ts and latestwhatsapp-campaign.ts withgatewayJWT ON. Secrets remainserveronly.

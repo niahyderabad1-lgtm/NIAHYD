@@ -1,3 +1,14 @@
+function canonical(v:any):any{return Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;}
+function compatible(components:any[],media:any=null){
+ if(!Array.isArray(components)||!components.some(c=>c.type==='BODY'))return false;
+ return components.every(c=>{
+  if(c.type==='BODY')return typeof c.text==='string'&&!c.text.replaceAll('{{1}}','').includes('{{');
+  if(c.type==='HEADER')return c.format==='TEXT'?!c.text?.includes('{{'):['IMAGE','VIDEO','DOCUMENT'].includes(c.format)&&media?.kind===c.format;
+  if(c.type==='FOOTER')return !c.text?.includes('{{');
+  if(c.type==='BUTTONS')return Array.isArray(c.buttons)&&c.buttons.every((b:any)=>b.type==='URL'&&!b.url?.includes('{{'));
+  return false;
+ });
+}
 const origin='https://niahyderabad1-lgtm.github.io';
 Deno.serve(async(req:Request)=>{
  const headers={'Content-Type':'application/json','Access-Control-Allow-Origin':origin,'Access-Control-Allow-Headers':'authorization,apikey,content-type','Access-Control-Allow-Methods':'POST,OPTIONS','Vary':'Origin'};
@@ -18,6 +29,17 @@ Deno.serve(async(req:Request)=>{
   const {campaign_id}=JSON.parse(raw);if(!/^[0-9a-f-]{36}$/i.test(campaign_id))return reply(400,{error:'Invalid campaign'});
   const token=Deno.env.get('WHATSAPP_ACCESS_TOKEN'),number=Deno.env.get('WHATSAPP_PHONE_NUMBER_ID');
   if(!token||number!=='1266052096601533')return reply(503,{error:'Broadcast sender unavailable'});
+  const campaigns=await fetch(base+'/rest/v1/wa_campaigns?id=eq.'+campaign_id+'&select=template,language,template_definition',{headers:db});
+  if(!campaigns.ok)return reply(503,{error:'Cannot load campaign'});const campaign=(await campaigns.json())[0];if(!campaign)return reply(404,{error:'Campaign not found'});
+  const checked=await fetch('https://graph.facebook.com/v25.0/1747796306429948/message_templates?name='+encodeURIComponent(campaign.template)+'&fields=name,language,status,components',{headers:{Authorization:'Bearer '+token},signal:AbortSignal.timeout(10000)});
+  const remote=await checked.json();if(!checked.ok)return reply(503,{error:'Cannot verify current template approval'});
+  const template=(remote.data||[]).find((t:any)=>t.name===campaign.template&&t.language===campaign.language&&t.status==='APPROVED');
+  const mediaRow=await fetch(base+'/rest/v1/wa_templates?name=eq.'+encodeURIComponent(campaign.template)+'&language=eq.'+encodeURIComponent(campaign.language)+'&select=wa_media(*)',{headers:db});if(!mediaRow.ok)return reply(503,{error:'Cannot load media reference'});const media=(await mediaRow.json())[0]?.wa_media;
+  if(!template||!compatible(template.components,media))return reply(409,{error:'Template is not currently approved or requires unsupported parameters'});
+  if(campaign.template_definition&&JSON.stringify(canonical(template.components))!==JSON.stringify(canonical(campaign.template_definition)))return reply(409,{error:'Template content changed. Create a fresh campaign preview.'});
+  const header=template.components.find((c:any)=>c.type==='HEADER');
+  const mediaParams=header&&header.format!=='TEXT'?[{type:'header',parameters:[{type:header.format.toLowerCase(),[header.format.toLowerCase()]:{id:media.meta_media_id,...(header.format==='DOCUMENT'?{filename:media.filename}:{})}}]}]:[];
+  const useName=template.components.find((c:any)=>c.type==='BODY')?.text?.includes('{{1}}');
   const claimed=await fetch(base+'/rest/v1/rpc/wa_claim_batch',{method:'POST',headers:db,body:JSON.stringify({p_id:campaign_id})});
   if(!claimed.ok)return reply(503,{error:'Unable to claim recipients'});
   const rows=await claimed.json(),results=[];
@@ -28,8 +50,8 @@ Deno.serve(async(req:Request)=>{
     if(!permission.ok)throw Error('Consent unavailable');
     if(!(await permission.json())[0]?.opted_in){state='skipped';}
     else{
-     const sent=await fetch('https://graph.facebook.com/v25.0/'+number+'/messages',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({messaging_product:'whatsapp',to:r.contact_id,type:'template',template:{name:'broadcast_update',language:{code:'en_US'},components:[{type:'body',parameters:[{type:'text',text:r.recipient_name}]}]}}),signal:AbortSignal.timeout(10000)});
-     const result=await sent.json();state=sent.ok?'accepted':'failed';message_id=result.messages?.[0]?.id||null;error_code=result.error?.code?String(result.error.code):null;
+     const sent=await fetch('https://graph.facebook.com/v25.0/'+number+'/messages',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({messaging_product:'whatsapp',to:r.contact_id,type:'template',template:{name:campaign.template,language:{code:campaign.language},...((useName||mediaParams.length)?{components:[...mediaParams,...(useName?[{type:'body',parameters:[{type:'text',text:r.recipient_name}]}]:[])]}:{})}}),signal:AbortSignal.timeout(10000)});
+     const result=await sent.json();message_id=result.messages?.[0]?.id||null;state=sent.ok?(message_id?'accepted':'uncertain'):'failed';error_code=result.error?.code?String(result.error.code):null;
     }
    }catch{state='uncertain';}
    const saved=await fetch(base+'/rest/v1/wa_campaign_recipients?id=eq.'+r.id,{method:'PATCH',headers:db,body:JSON.stringify({state,message_id,error_code,updated_at:new Date().toISOString()})});

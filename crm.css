@@ -3,3 +3,5 @@
 #activity-section{border-top:1px solid #d5dce5;padding-top:24px;margin-top:24px}.activity{padding:14px;background:#f1f6fb;border-radius:5px;margin:12px 0}.activity small{display:block;margin-top:6px;color:#536577}.activity p{white-space:pre-wrap;line-height:1.5;margin:10px 0 0}.toolbar{flex-wrap:wrap}#activity-section textarea{width:100%}#activity-section h3{font-size:20px}
 
 .campaign-summary{padding:16px;border:1px solid #d5dce5;border-radius:8px;margin:20px 0}.campaign-summary summary{font-weight:bold;cursor:pointer}#campaign-stats p{font-size:14px;line-height:1.5}
+
+.crm-tabs{display:flex;gap:12px;margin:18px 0;flex-wrap:wrap}.crm-tabs button[aria-selected=true]{background:#123e38;color:white}#wa-broadcast-panel .campaign-summary{border:0;padding:0}#wa-broadcast-panel form{max-width:820px}#wa-broadcast-panel table{min-width:650px}#wa-broadcast-panel pre{padding:14px;background:#f0f5f3;border-radius:8px}#wa-broadcast-panel button{margin:5px 5px 5px 0}.table-wrap{overflow-x:auto}#wa-template-rows input,#wa-contact-rows input{width:auto}
