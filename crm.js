@@ -56,3 +56,29 @@ $('#wa-reply-form').addEventListener('submit',async event=>{
  catch(e){status.textContent=e.message;}
  finally{button.disabled=false;}
 });
+
+const waNumber=p=>{const n=(p||'').replace(/\D/g,'');return n.length===10?'91'+n:n;};
+$('#wa-consent-form').addEventListener('submit',async e=>{
+ e.preventDefault();if(demo){$('#wa-status').textContent='Sample mode cannot save permissions.';return;}
+ const f=new FormData(e.currentTarget);
+ try{await request('/rest/v1/rpc/wa_record_consent',{method:'POST',body:JSON.stringify({p_contact:f.get('contact'),p_opted_in:f.get('permission')==='true',p_evidence:f.get('evidence')})});$('#wa-status').textContent='Marketing permission saved.';}catch(err){$('#wa-status').textContent=err.message;}
+});
+$('#wa-campaign-form').addEventListener('submit',async e=>{
+ e.preventDefault();if(demo){$('#wa-status').textContent='Sample mode cannot create campaigns.';return;}
+ const q=$('#search').value.toLowerCase();const contacts=[...new Set(leads.filter(l=>(!$('#stage-filter').value||l.stage===$('#stage-filter').value)&&[l.name,l.company,l.category,l.phone].some(v=>(v||'').toLowerCase().includes(q))).map(l=>waNumber(l.phone)).filter(n=>/^[0-9]{8,15}$/.test(n)))];
+ const button=e.currentTarget.querySelector('button');button.disabled=true;
+ try{await request('/rest/v1/rpc/wa_create_campaign',{method:'POST',body:JSON.stringify({p_name:new FormData(e.currentTarget).get('name'),p_contacts:contacts})});$('#wa-status').textContent='Draft created. Review recipients before launching.';await loadWaCampaigns();}catch(err){$('#wa-status').textContent=err.message;}finally{button.disabled=false;}
+});
+async function loadWaCampaigns(){
+ const root=$('#wa-campaigns');root.replaceChildren();if(demo)return;
+ try{const campaigns=await request('/rest/v1/wa_campaigns?select=*&order=created_at.desc&limit=20');
+ for(const c of campaigns){const recipients=await request('/rest/v1/wa_campaign_recipients?campaign_id=eq.'+c.id+'&select=contact_id,recipient_name,state,message_id,error_code');
+ const box=document.createElement('article');box.className='activity';const title=document.createElement('strong');title.textContent=c.name+' · '+c.state+' · '+recipients.length+' recipients';box.append(title);
+ const list=document.createElement('p');list.textContent=recipients.map(r=>r.recipient_name+' ('+r.contact_id+') — '+r.state+(r.error_code?' / Meta '+r.error_code:'')).join('\n');list.style.whiteSpace='pre-wrap';box.append(list);
+ if(c.state==='draft'||recipients.some(r=>r.state==='pending')){const b=document.createElement('button');b.textContent=c.state==='draft'?'Launch reviewed campaign':'Process next 5 recipients';b.addEventListener('click',async()=>{
+ if(c.state==='draft'&&!confirm('Send broadcast_update from 7997994495 to the '+recipients.length+' recipients shown?'))return;
+ b.disabled=true;try{if(c.state==='draft')await request('/rest/v1/rpc/wa_launch_campaign',{method:'POST',body:JSON.stringify({p_id:c.id})});const result=await request('/functions/v1/whatsapp-campaign',{method:'POST',body:JSON.stringify({campaign_id:c.id})});$('#wa-status').textContent=result.processed+' recipients processed. Accepted messages are not confirmed delivered.';await loadWaCampaigns();}catch(err){$('#wa-status').textContent=err.message;b.disabled=false;}
+ });box.append(b);}root.append(box);}
+ }catch(err){$('#wa-status').textContent=err.message;}
+}
+$('#wa-campaign-refresh').addEventListener('click',loadWaCampaigns);
