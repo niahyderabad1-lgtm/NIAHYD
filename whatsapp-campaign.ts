@@ -31,6 +31,7 @@ Deno.serve(async(req:Request)=>{
   if(!token||number!=='1266052096601533')return reply(503,{error:'Broadcast sender unavailable'});
   const campaigns=await fetch(base+'/rest/v1/wa_campaigns?id=eq.'+campaign_id+'&select=template,language,template_definition',{headers:db});
   if(!campaigns.ok)return reply(503,{error:'Cannot load campaign'});const campaign=(await campaigns.json())[0];if(!campaign)return reply(404,{error:'Campaign not found'});
+  if(campaign.template==='hello_world')return reply(409,{error:'hello_world is for Meta test numbers. Choose a production template.'});
   const checked=await fetch('https://graph.facebook.com/v25.0/1747796306429948/message_templates?name='+encodeURIComponent(campaign.template)+'&fields=name,language,status,components',{headers:{Authorization:'Bearer '+token},signal:AbortSignal.timeout(10000)});
   const remote=await checked.json();if(!checked.ok)return reply(503,{error:'Cannot verify current template approval'});
   const template=(remote.data||[]).find((t:any)=>t.name===campaign.template&&t.language===campaign.language&&t.status==='APPROVED');
