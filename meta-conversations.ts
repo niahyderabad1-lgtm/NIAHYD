@@ -15,7 +15,14 @@ Deno.serve(async(req:Request)=>{
   const userR=await fetch(base+'/auth/v1/user',{headers:{apikey:service,Authorization:req.headers.get('authorization')||''}});if(!userR.ok)return reply(401,{error:'Staff sign-in required'});const user=await userR.json();
   if(!(await rest('crm_staff?user_id=eq.'+encodeURIComponent(user.id)+'&select=user_id')).length)return reply(403,{error:'Staff access required'});
   const text=await req.text();if(text.length>12000)return reply(413,{error:'Request too large'});const input=JSON.parse(text);
-  if(input.action==='status')return reply(200,{facebook:!!(page&&access),instagram:!!(page&&ig&&access),webhook:!!(Deno.env.get('META_APP_SECRET')&&Deno.env.get('WHATSAPP_VERIFY_TOKEN')),note:'Configured does not mean permissions or webhook delivery are verified.'});
+  if(input.action==='status'){
+   const state:any={facebook:false,instagram:false,instagram_account_id:null,errors:[],webhook:!!(Deno.env.get('META_APP_SECRET')&&Deno.env.get('WHATSAPP_VERIFY_TOKEN'))};
+   if(!page||!access){state.errors.push('Page ID or Page token missing in Supabase.');return reply(200,state);}
+   try{const info=await graph(encodeURIComponent(page)+'?fields=id,name,instagram_business_account{id,username}');state.page_name=info.name;state.instagram_account_id=info.instagram_business_account?.id||null;if(state.instagram_account_id)console.info('Linked Instagram account: '+state.instagram_account_id+' / '+(info.instagram_business_account?.username||''));}catch(e){state.errors.push(String(e instanceof Error?e.message:e));}
+   try{await graph(encodeURIComponent(page)+'/conversations?fields=id&platform=messenger&limit=1');state.facebook=true;}catch(e){state.errors.push('Facebook: '+String(e instanceof Error?e.message:e));}
+   if(ig){try{await graph(encodeURIComponent(page)+'/conversations?fields=id&platform=instagram&limit=1');state.instagram=true;}catch(e){state.errors.push('Instagram: '+String(e instanceof Error?e.message:e));}}else state.errors.push('Save the linked Instagram account ID as META_INSTAGRAM_ACCOUNT_ID.');
+   return reply(200,state);
+  }
   if(!page||!access)return reply(409,{error:'Configure META_FACEBOOK_PAGE_ID and META_PAGE_ACCESS_TOKEN in Supabase secrets.'});
   if(input.action==='sync'){
    const channel=input.channel;if(!['facebook','instagram'].includes(channel)||channel==='instagram'&&!ig)return reply(400,{error:'Choose a configured channel'});
