@@ -1,0 +1,61 @@
+'use strict';
+// Presentation layer: retain the existing protected CRM and campaign actions.
+const uiNode=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text)n.textContent=text;return n;};
+const uiNav=$('.crm-tabs');$('aside').insertBefore(uiNav,$('aside .event'));uiNav.setAttribute('aria-label','Workspace navigation');
+$('#pipeline-tab').textContent='Leads';
+const followNav=uiNode('button','','Follow-ups');followNav.type='button';uiNav.insertBefore(followNav,$('#wa-broadcast-tab'));
+const inboxNav=uiNode('button','','Conversations');inboxNav.type='button';uiNav.append(inboxNav);
+const pageTitle=$('main h1');
+function activeNav(b,title){for(const item of uiNav.children)item.setAttribute('aria-selected',String(item===b));pageTitle.textContent=title;}
+const workspaceObserver=new MutationObserver(()=>{uiNav.hidden=$('#workspace').hidden;});workspaceObserver.observe($('#workspace'),{attributes:true,attributeFilter:['hidden']});uiNav.hidden=$('#workspace').hidden;
+$('#pipeline-tab').addEventListener('click',()=>{activeNav($('#pipeline-tab'),'Visitor leads');$('#queue-filter').value='';render();});
+followNav.addEventListener('click',()=>{switchCrmTab(false);activeNav(followNav,'Follow-ups');$('#queue-filter').value='today';render();});
+$('#wa-broadcast-tab').addEventListener('click',()=>{activeNav($('#wa-broadcast-tab'),'WhatsApp broadcasts');showBroadcastSection('campaigns');});
+inboxNav.addEventListener('click',()=>{switchCrmTab(true);activeNav(inboxNav,'Conversations');showBroadcastSection('conversations');});
+// Keep the existing controls together in dedicated workspaces.
+const waRoot=$('#wa-broadcast-panel details.campaign-summary');waRoot.open=true;waRoot.querySelector(':scope > summary').hidden=true;
+const waTabs=uiNode('nav','broadcast-tabs');waTabs.setAttribute('aria-label','Broadcast sections');waRoot.insertBefore(waTabs,$('#wa-template-builder'));
+let refreshWizard=()=>{};const sections={};for(const [key,title] of [['campaigns','Campaigns'],['templates','Templates'],['contacts','Contacts'],['conversations','Replies & delivery']]){const panel=uiNode('section','workspace-card');panel.id='ui-'+key;sections[key]=panel;waRoot.append(panel);const b=uiNode('button','',title);b.type='button';b.dataset.section=key;b.addEventListener('click',()=>showBroadcastSection(key));waTabs.append(b);}
+function moveRange(first,end,panel){let n=first;while(n&&n!==end){const next=n.nextElementSibling;panel.append(n);n=next;}}
+const contactHeading=$('#wa-import-form').previousElementSibling.previousElementSibling;
+const templateHeading=$('#wa-template-sync').previousElementSibling;
+moveRange(contactHeading,templateHeading,sections.contacts);
+moveRange(templateHeading,$('#wa-campaign-form'),sections.templates);
+sections.templates.insertBefore($('#wa-template-builder'),sections.templates.firstChild);
+moveRange($('#wa-campaign-form'),$('#wa-refresh'),sections.campaigns);
+moveRange($('#wa-refresh'),sections.campaigns,sections.conversations); // Stop at the panels appended above.
+// The previous range includes section nodes; keep all sections as siblings.
+for(const panel of Object.values(sections))if(panel.parentNode!==waRoot)waRoot.append(panel);
+sections.contacts.prepend($('#wa-consent-form').closest('details'));
+// Shared feedback remains visible across every broadcast section.
+waRoot.insertBefore($('#wa-status'),waTabs.nextSibling);
+function showBroadcastSection(key){if(key==='campaigns')refreshWizard();for(const [k,p] of Object.entries(sections))p.hidden=k!==key;for(const b of waTabs.children)b.setAttribute('aria-selected',String(b.dataset.section===key));}
+showBroadcastSection('campaigns');
+// Search, owner/source filters and sorting all use the same lead predicate.
+const toolbar=$('#pipeline-panel .toolbar');
+for(const [id,label] of [['owner-filter','All owners'],['source-filter','All sources']]){const select=uiNode('select');select.id=id;select.setAttribute('aria-label',label);select.append(new Option(label,''));toolbar.insertBefore(select,$('#export'));select.addEventListener('change',()=>render());}
+const sort=uiNode('select');sort.id='lead-sort';sort.setAttribute('aria-label','Sort leads');for(const [v,label] of [['recent','Newest first'],['name','Name A–Z'],['followup','Next follow-up'],['stage','Stage']])sort.append(new Option(label,v));toolbar.insertBefore(sort,$('#export'));sort.addEventListener('change',()=>render());
+const count=uiNode('p','hint');count.id='lead-result-count';toolbar.after(count);
+const originalRender=render;render=function(){for(const [id,key,label] of [['owner-filter','owner','All owners'],['source-filter','source','All sources']]){const el=$('#'+id),saved=el.value;el.replaceChildren(new Option(label,''));for(const v of [...new Set(leads.map(l=>l[key]).filter(Boolean))].sort())el.append(new Option(v,v));el.value=saved;}
+ originalRender();count.textContent=$('#rows').children.length+' matching leads · '+leads.length+' total';for(const row of $('#rows').children){for(const idx of [2,3]){const td=row.children[idx],badge=uiNode('span','status-badge '+(td.textContent==='paid'?'badge-approved':'badge-neutral'),td.textContent);td.replaceChildren(badge);}}};
+// A side drawer keeps list context visible while editing a lead.
+$('#editor').classList.add('lead-drawer');
+// Reusable WhatsApp-style previews use textContent for all submitted content.
+function messagePreview(target,components,file){target.replaceChildren();target.className='message-preview';const phone=uiNode('div','wa-phone');phone.append(uiNode('div','wa-phone-title','NIA Hyderabad · 7997994495'));const bubble=uiNode('div','wa-bubble');phone.append(bubble);for(const c of components||[]){if(c.type==='HEADER'&&c.format!=='TEXT'){const media=uiNode('div','wa-media');if(file&&c.format==='IMAGE'){const img=uiNode('img');img.src=URL.createObjectURL(file);img.alt='Selected image header';img.onload=()=>URL.revokeObjectURL(img.src);media.append(img);}else if(file&&c.format==='VIDEO'){const video=uiNode('video');video.controls=true;video.src=URL.createObjectURL(file);video.onloadeddata=()=>URL.revokeObjectURL(video.src);media.append(video);}else media.textContent=c.format==='DOCUMENT'?'▤ '+(file?.name||'Document header'):(c.format==='VIDEO'?'▶ Video header':'▧ Image header');bubble.append(media);}if(c.text)bubble.append(uiNode(c.type==='FOOTER'?'small':'p',c.type==='HEADER'?'wa-header':'',c.text.replaceAll('{{1}}','Visitor')));if(c.buttons)for(const b of c.buttons)bubble.append(uiNode('div','wa-message-button',b.text));}target.append(phone,uiNode('p','hint','Preview uses “Visitor” as the example name. Final content follows the approved Meta template.'));}
+function builderPreview(){const f=new FormData($('#wa-template-form')),kind=f.get('media_type'),cs=[];if(kind!=='TEXT')cs.push({type:'HEADER',format:kind});else if(f.get('header'))cs.push({type:'HEADER',format:'TEXT',text:f.get('header')});cs.push({type:'BODY',text:f.get('body')},{type:'FOOTER',text:f.get('footer')});if(f.get('url'))cs.push({type:'BUTTONS',buttons:[{text:f.get('button')}]});messagePreview($('#wa-template-preview'),cs,$('#wa-template-media').files[0]);}
+$('#wa-template-preview-button').addEventListener('click',builderPreview);$('#wa-template-form').addEventListener('input',builderPreview);$('#wa-template-media').addEventListener('change',builderPreview);
+function enhanceTemplateRows(){for(const row of $('#wa-template-rows').children){const td=row.children[4];if(!td.querySelector('.status-badge')){const value=td.textContent;td.replaceChildren(uiNode('span','status-badge badge-'+value.split(' ')[0].toLowerCase(),value));}const t=templateRows.find(t=>t.name===row.children[1].textContent&&t.language===row.children[2].textContent);const preview=row.querySelector('button');if(t&&preview&&!preview.dataset.visual){preview.dataset.visual='true';preview.addEventListener('click',()=>messagePreview($('#wa-selected-preview'),t.components));}const check=row.querySelector('input');if(t&&check&&!check.dataset.visual){check.dataset.visual='true';check.addEventListener('change',()=>{if(check.checked)messagePreview($('#wa-selected-preview'),t.components);updateWizardTemplates();});}}
+ updateWizardTemplates();}
+new MutationObserver(enhanceTemplateRows).observe($('#wa-template-rows'),{childList:true});
+// Campaign wizard saves a draft only. Sending remains a separate reviewed action.
+const campaignForm=$('#wa-campaign-form'),sourceLabel=$('#wa-recipient-source').closest('label'),nameLabel=campaignForm.querySelector('input[name=name]').closest('label'),saveButton=campaignForm.querySelector('button');
+const wizard=uiNode('div','campaign-wizard'),steps=uiNode('ol','wizard-steps');for(const text of ['Template','Recipients','Review'])steps.append(uiNode('li','',text));campaignForm.prepend(wizard);wizard.append(steps);
+const wizardPages=[0,1,2].map(()=>uiNode('div','wizard-page'));for(const p of wizardPages)wizard.append(p);
+const chooserLabel=uiNode('label','','Approved template'),chooserSelect=uiNode('select');chooserSelect.id='wizard-template';chooserLabel.append(chooserSelect);wizardPages[0].append(uiNode('h3','','Choose your message'),chooserLabel);const templateLink=uiNode('button','','Browse or create templates');templateLink.type='button';templateLink.addEventListener('click',()=>showBroadcastSection('templates'));wizardPages[0].append(templateLink);
+wizardPages[1].append(uiNode('h3','','Choose recipients'),nameLabel,sourceLabel);const contactsLink=uiNode('button','','Import or select contacts');contactsLink.type='button';contactsLink.addEventListener('click',()=>showBroadcastSection('contacts'));wizardPages[1].append(contactsLink,uiNode('p','hint','Only recorded opt-ins will enter the saved draft. Visitor leads use your current lead filters.'));
+const review=uiNode('div');wizardPages[2].append(uiNode('h3','','Review your draft'),review,saveButton);saveButton.type='submit';saveButton.id='wa-save-campaign';saveButton.textContent='Save draft & verify recipients';
+const wizardActions=uiNode('div','wizard-actions'),back=uiNode('button','','Back'),next=uiNode('button','primary','Continue');back.type=next.type='button';wizardActions.append(back,next);wizard.append(wizardActions);const wizardStatus=uiNode('p','hint');wizardStatus.setAttribute('role','status');wizard.append(wizardStatus);let wizardStep=0;
+function updateWizardTemplates(){if(!chooserSelect)return;chooserSelect.replaceChildren(new Option('Select an approved template',''));for(const t of templateRows.filter(t=>t.status==='APPROVED'&&t.supported))chooserSelect.append(new Option(t.name+' · '+t.language,t.id));chooserSelect.value=selectedTemplate?.id||'';}
+chooserSelect.addEventListener('change',()=>{selectedTemplate=templateRows.find(t=>t.id===chooserSelect.value&&t.status==='APPROVED'&&t.supported)||null;loadTemplates();});
+function showWizard(){if(wizardStep===2&&!selectedTemplate)wizardStep=0;wizardPages.forEach((p,i)=>p.hidden=i!==wizardStep);[...steps.children].forEach((p,i)=>{p.className=i===wizardStep?'current':i<wizardStep?'complete':'';});back.hidden=wizardStep===0;next.hidden=wizardStep===2;if(wizardStep===2){review.replaceChildren(uiNode('p','','Campaign: '+campaignForm.elements.name.value),uiNode('p','','Template: '+selectedTemplate.name),uiNode('p','','Audience: '+($('#wa-recipient-source').value==='contacts'?selectedContacts.size+' selected contacts':'Filtered visitor leads')),uiNode('p','hint','Saving verifies consent and removes duplicates. Review the actual recipient list below before launching.'));const preview=uiNode('div');review.append(preview);messagePreview(preview,selectedTemplate.components);}}
+next.addEventListener('click',()=>{wizardStatus.textContent='';if(wizardStep===0&&!selectedTemplate){wizardStatus.textContent='Choose an approved template to continue.';return;}if(wizardStep===1&&!campaignForm.elements.name.reportValidity())return;if(wizardStep===1&&$('#wa-recipient-source').value==='contacts'&&!selectedContacts.size){wizardStatus.textContent='Select at least one opted-in contact in Contacts.';return;}wizardStep++;showWizard();});back.addEventListener('click',()=>{wizardStep--;showWizard();});refreshWizard=()=>{wizardStep=0;showWizard();};showWizard();
