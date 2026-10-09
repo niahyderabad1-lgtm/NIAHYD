@@ -23,7 +23,7 @@ App: Mavericks WA Broadcaster, `28360688760263698`.
 
 ## Limits and checks
 
-- Sync uses ten conversations per page and at most twenty recent messages per conversation. The user can request the next conversation page. This does not promise a full historical import.
+- Facebook sync uses ten conversations per page and at most twenty recent messages per conversation. Instagram uses one conversation and five recent messages per request to stay within Meta response limits. The user can request the next conversation page. This does not promise a full historical import.
 - Facebook and Instagram identifiers are scoped strings, not telephone numbers. No automatic lead creation or identity merging.
 - Only standard text replies within 24 hours of the last incoming message are supported. No human-agent extension, unsolicited broadcasts, reactions or media replies in this phase.
 - API acceptance is not a delivery/read receipt. Message echoes are ingested; delivery/read receipt UI is not yet implemented for Meta channels.

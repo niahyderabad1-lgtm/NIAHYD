@@ -27,7 +27,7 @@ Deno.serve(async(req:Request)=>{
   if(input.action==='sync'){
    const channel=input.channel;if(!['facebook','instagram'].includes(channel)||channel==='instagram'&&!ig)return reply(400,{error:'Choose a configured channel'});
    const cursor=typeof input.after==='string'?input.after:'';if(cursor.length>2000)return reply(400,{error:'Invalid cursor'});
-   const query=new URLSearchParams({platform:channel==='instagram'?'instagram':'messenger',fields:'id,messages.limit(20){id,message,from,to,created_time}',limit:'10'});if(cursor)query.set('after',cursor);
+   const query=new URLSearchParams({platform:channel==='instagram'?'instagram':'messenger',fields:channel==='instagram'?'id,messages.limit(5){id,message,from,to,created_time}':'id,messages.limit(20){id,message,from,to,created_time}',limit:channel==='instagram'?'1':'10'});if(cursor)query.set('after',cursor);
    const result=await graph(encodeURIComponent(page)+'/conversations?'+query);let count=0;
    for(const c of result.data||[]){for(const m of c.messages?.data||[]){const own=new Set([page,ig].filter(Boolean));const outgoing=own.has(String(m.from?.id));const participant=outgoing?m.to?.data?.find((p:any)=>!own.has(String(p.id))):m.from;if(!participant?.id||!m.id||!m.created_time)continue;
     await rest('rpc/meta_ingest_message',{method:'POST',body:JSON.stringify({p_channel:channel,p_account:channel==='facebook'?page:ig,p_participant:String(participant.id),p_name:participant.name||'',p_conversation:c.id,p_message:m.id,p_direction:outgoing?'outgoing':'incoming',p_body:m.message||'[Media message]',p_at:m.created_time})});count++;}}
