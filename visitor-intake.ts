@@ -47,14 +47,14 @@ const testWebhook=async(req:Request)=>{
  const secret=Deno.env.get('RAZORPAY_WEBHOOK_SECRET')||'';
  if(!secret)return reply(503,{error:'Webhook not configured'});
  const sig=req.headers.get('x-razorpay-signature')||'';
- if(!/^[a-f0-9]{64}$/i.test(sig))return reply(400,{error:'Invalid webhook signature'});
+ if(!/^[a-f0-9]{64}$/i.test(sig)){console.warn('webhook_rejected: signature missing or malformed');return reply(400,{error:'Invalid webhook signature'});}
  const raw=await req.text();if(new TextEncoder().encode(raw).length>8000)return reply(413,{error:'Request too large'});
  const hmac=await crypto.subtle.importKey('raw',new TextEncoder().encode(secret),{name:'HMAC',hash:'SHA-256'},false,['verify']);
  const signature=Uint8Array.from(sig.match(/../g)!.map(v=>parseInt(v,16)));
- if(!await crypto.subtle.verify('HMAC',hmac,signature,new TextEncoder().encode(raw)))return reply(400,{error:'Invalid webhook signature'});
+ if(!await crypto.subtle.verify('HMAC',hmac,signature,new TextEncoder().encode(raw))){console.warn('webhook_rejected: signature mismatch');return reply(400,{error:'Invalid webhook signature'});}
  const event=JSON.parse(raw);if(!['payment.captured','order.paid'].includes(event.event))return reply(200,{received:true});
  const entity=event.payload?.payment?.entity;
- if(!/^pay_[A-Za-z0-9]+$/.test(entity?.id)||!/^order_[A-Za-z0-9]+$/.test(entity?.order_id))return reply(400,{error:'Invalid payment event'});
+ if(!/^pay_[A-Za-z0-9]+$/.test(entity?.id)||!/^order_[A-Za-z0-9]+$/.test(entity?.order_id)){console.warn('webhook_rejected: invalid payment event');return reply(400,{error:'Invalid payment event'});}
  const key=Deno.env.get('RAZORPAY_KEY_ID')||'',rpSecret=Deno.env.get('RAZORPAY_KEY_SECRET')||'';
  if(!key.startsWith('rzp_test_')||!rpSecret)return reply(503,{error:'Test payment configuration required'});
  const service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,base=Deno.env.get('SUPABASE_URL')+'/rest/v1/';
@@ -66,7 +66,7 @@ const testWebhook=async(req:Request)=>{
  const [pr,orr]=await Promise.all([fetch('https://api.razorpay.com/v1/payments/'+entity.id,{headers:rpHeaders,signal:AbortSignal.timeout(15000)}),fetch('https://api.razorpay.com/v1/orders/'+entity.order_id,{headers:rpHeaders,signal:AbortSignal.timeout(15000)})]);
  if(!pr.ok||!orr.ok)return reply(502,{error:'Unable to confirm payment'});
  const payment=await pr.json(),order=await orr.json();
- if(payment.order_id!==entity.order_id||payment.status!=='captured'||payment.amount!==260000||payment.currency!=='INR'||order.status!=='paid'||order.amount_paid!==260000)return reply(400,{error:'Payment does not match test booking'});
+ if(payment.order_id!==entity.order_id||payment.status!=='captured'||payment.amount!==260000||payment.currency!=='INR'||order.status!=='paid'||order.amount_paid!==260000){console.warn('webhook_rejected: amount or capture status mismatch');return reply(400,{error:'Payment does not match test booking'});}
  if(orders[0].verified_at&&orders[0].payment_id===entity.id)return reply(200,{received:true,test_mode:true});
  const saved=await fetch(base+query,{method:'PATCH',headers:dbHeaders,body:JSON.stringify({payment_id:entity.id,verified_at:new Date().toISOString()})});
  return saved.ok?reply(200,{received:true,test_mode:true}):reply(500,{error:'Unable to reconcile'});

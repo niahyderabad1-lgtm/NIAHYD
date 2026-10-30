@@ -34,3 +34,12 @@ App: Mavericks WA Broadcaster, `28360688760263698`.
 Official references:
 - https://www.postman.com/meta/messenger-platform-api/folder/22794852-255610cd-47f5-4f4d-b3fa-71aec360be9a
 - https://www.postman.com/meta/messenger-platform-api/documentation/iyp204x/messenger-platform-api
+
+## Verification checkpoint — 10 October 2026
+
+- Callback verified. NIA Hyderabad Facebook Page subscribed to messages and message_echoes; Instagram messages subscribed at app and Page levels.
+- Real incoming Facebook and Instagram test messages were verified in protected storage through the signed webhook.
+- One authorised CRM reply on each channel was accepted by Meta; the test recipient confirmed both arrived.
+- Instagram history sync had intermittent Meta timeout errors. The last connection status check succeeded, but complete history import has not been verified.
+- General-user access/App Review and durable token lifecycle remain pending. This checkpoint records testing on 10 October, not a current health guarantee.
+- No credentials or private conversation records are included in this repository.

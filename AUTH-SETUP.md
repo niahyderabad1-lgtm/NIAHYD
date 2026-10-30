@@ -12,3 +12,7 @@ Supabase client v2.57.4 is vendored from npm CDN for PKCE OAuth, email verificat
 - When custom SMTP is configured, update magic-link template to display {{ .Token }} (optionally keep {{ .ConfirmationURL }} as fallback). Then change login button/status to email code and reveal otp-form after successful signInWithOtp.
 - Google OAuth and SMTP credentials are entered by the user, never committed.
 - Supabase built-in email rate limits and session policy still apply. Long-lived session option does not bypass revoked tokens or staff RLS.
+
+## Verified 10 October 2026
+
+Google provider enabled. Approved staff Google sign-in succeeded and restored the protected workspace after a browser refresh. Email links remain the backup; email-code delivery is deferred pending SMTP setup. Credentials remain in Supabase.
