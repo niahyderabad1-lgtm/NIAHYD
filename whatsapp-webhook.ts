@@ -1,7 +1,14 @@
+// Credential overrides are encrypted in Vault; existing environment values remain fallback.
+async function niaSecret(name:string):Promise<string|undefined>{
+ const service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+ const response=await fetch(Deno.env.get('SUPABASE_URL')+'/rest/v1/rpc/nia_config_read',{method:'POST',headers:{apikey:service,Authorization:'Bearer '+service,'Content-Type':'application/json'},body:JSON.stringify({p_name:name}),signal:AbortSignal.timeout(5000)});
+ if(!response.ok)throw Error('Credential storage unavailable');
+ const value=await response.json();return value===null?Deno.env.get(name):value;
+}
 // Public Meta ingress: GET challenge + signed POST, no database reads exposed.
 const response=(status:number,text:string)=>new Response(text,{status,headers:{'Content-Type':'text/plain'}});
 Deno.serve(async(req:Request)=>{
- const verify=Deno.env.get('WHATSAPP_VERIFY_TOKEN'),secret=Deno.env.get('META_APP_SECRET');
+ const verify=(await niaSecret('WHATSAPP_VERIFY_TOKEN')),secret=(await niaSecret('META_APP_SECRET'));
  if(req.method==='GET'){
   const p=new URL(req.url).searchParams;
   return verify&&p.get('hub.mode')==='subscribe'&&p.get('hub.verify_token')===verify

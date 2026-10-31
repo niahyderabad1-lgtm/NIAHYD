@@ -1,3 +1,10 @@
+// Credential overrides are encrypted in Vault; existing environment values remain fallback.
+async function niaSecret(name:string):Promise<string|undefined>{
+ const service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+ const response=await fetch(Deno.env.get('SUPABASE_URL')+'/rest/v1/rpc/nia_config_read',{method:'POST',headers:{apikey:service,Authorization:'Bearer '+service,'Content-Type':'application/json'},body:JSON.stringify({p_name:name}),signal:AbortSignal.timeout(5000)});
+ if(!response.ok)throw Error('Credential storage unavailable');
+ const value=await response.json();return value===null?Deno.env.get(name):value;
+}
 const origin='https://niahyderabad1-lgtm.github.io';
 Deno.serve(async(req:Request)=>{
  const headers={'Content-Type':'application/json','Access-Control-Allow-Origin':origin,'Access-Control-Allow-Headers':'authorization,apikey,content-type','Access-Control-Allow-Methods':'POST,OPTIONS','Vary':'Origin'};
@@ -27,7 +34,7 @@ Deno.serve(async(req:Request)=>{
   if(!inserted.ok)return reply(409,{error:'Send already started; refresh before retrying.'});
   const patch=async(state:string,message_id:string|null=null)=>fetch(base+'/rest/v1/wa_outgoing?request_id=eq.'+request_id,{method:'PATCH',headers:db,body:JSON.stringify({state,message_id})});
   try{
-   const token=Deno.env.get('WHATSAPP_ACCESS_TOKEN'),number=Deno.env.get('WHATSAPP_PHONE_NUMBER_ID');
+   const token=(await niaSecret('WHATSAPP_ACCESS_TOKEN')),number=Deno.env.get('WHATSAPP_PHONE_NUMBER_ID');
    if(!token||!number){await patch('failed');return reply(503,{error:'WhatsApp is not configured'});}
    const sent=await fetch('https://graph.facebook.com/v25.0/'+number+'/messages',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({messaging_product:'whatsapp',to:contact_id,type:'text',text:{body}}),signal:AbortSignal.timeout(15000)});
    const result=await sent.json();

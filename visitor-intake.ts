@@ -1,9 +1,16 @@
+// Credential overrides are encrypted in Vault; existing environment values remain fallback.
+async function niaSecret(name:string):Promise<string|undefined>{
+ const service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+ const response=await fetch(Deno.env.get('SUPABASE_URL')+'/rest/v1/rpc/nia_config_read',{method:'POST',headers:{apikey:service,Authorization:'Bearer '+service,'Content-Type':'application/json'},body:JSON.stringify({p_name:name}),signal:AbortSignal.timeout(5000)});
+ if(!response.ok)throw Error('Credential storage unavailable');
+ const value=await response.json();return value===null?Deno.env.get(name):value;
+}
 const allowedOrigin = 'https://niahyderabad1-lgtm.github.io';
 const headers = {'Access-Control-Allow-Origin': allowedOrigin,'Access-Control-Allow-Headers':'content-type,apikey,authorization','Access-Control-Allow-Methods':'POST,OPTIONS','Vary':'Origin','Content-Type':'application/json'};
 const reply=(status:number,value:unknown)=>new Response(JSON.stringify(value),{status,headers});
 // Test checkout only: test orders never change a real visitor's paid status.
 const paymentAction=async(b:any)=>{
- const key=Deno.env.get('RAZORPAY_KEY_ID')||'',keySecret=Deno.env.get('RAZORPAY_KEY_SECRET')||'';
+ const key=(await niaSecret('RAZORPAY_KEY_ID'))||'',keySecret=(await niaSecret('RAZORPAY_KEY_SECRET'))||'';
  if(!key.startsWith('rzp_test_')||!keySecret)return reply(503,{error:'Test payment settings are incomplete. Contact NIA.'});
  const service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,base=Deno.env.get('SUPABASE_URL')+'/rest/v1/';
  const dbHeaders={apikey:service,Authorization:'Bearer '+service,'Content-Type':'application/json'};
@@ -44,7 +51,7 @@ const paymentAction=async(b:any)=>{
  return reply(200,{verified:true,test_mode:true,payment_id:b.razorpay_payment_id});
 };
 const testWebhook=async(req:Request)=>{
- const secret=Deno.env.get('RAZORPAY_WEBHOOK_SECRET')||'';
+ const secret=(await niaSecret('RAZORPAY_WEBHOOK_SECRET'))||'';
  if(!secret)return reply(503,{error:'Webhook not configured'});
  const sig=req.headers.get('x-razorpay-signature')||'';
  if(!/^[a-f0-9]{64}$/i.test(sig)){console.warn('webhook_rejected: signature missing or malformed');return reply(400,{error:'Invalid webhook signature'});}
@@ -55,7 +62,7 @@ const testWebhook=async(req:Request)=>{
  const event=JSON.parse(raw);if(!['payment.captured','order.paid'].includes(event.event))return reply(200,{received:true});
  const entity=event.payload?.payment?.entity;
  if(!/^pay_[A-Za-z0-9]+$/.test(entity?.id)||!/^order_[A-Za-z0-9]+$/.test(entity?.order_id)){console.warn('webhook_rejected: invalid payment event');return reply(400,{error:'Invalid payment event'});}
- const key=Deno.env.get('RAZORPAY_KEY_ID')||'',rpSecret=Deno.env.get('RAZORPAY_KEY_SECRET')||'';
+ const key=(await niaSecret('RAZORPAY_KEY_ID'))||'',rpSecret=(await niaSecret('RAZORPAY_KEY_SECRET'))||'';
  if(!key.startsWith('rzp_test_')||!rpSecret)return reply(503,{error:'Test payment configuration required'});
  const service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,base=Deno.env.get('SUPABASE_URL')+'/rest/v1/';
  const dbHeaders={apikey:service,Authorization:'Bearer '+service,'Content-Type':'application/json'};
