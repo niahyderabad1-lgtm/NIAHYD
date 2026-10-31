@@ -8,6 +8,17 @@ async function niaSecret(name:string):Promise<string|undefined>{
 const allowedOrigin = 'https://niahyderabad1-lgtm.github.io';
 const headers = {'Access-Control-Allow-Origin': allowedOrigin,'Access-Control-Allow-Headers':'content-type,apikey,authorization','Access-Control-Allow-Methods':'POST,OPTIONS','Vary':'Origin','Content-Type':'application/json'};
 const reply=(status:number,value:unknown)=>new Response(JSON.stringify(value),{status,headers});
+// Resolve the published meeting on the server; never trust a browser-supplied event.
+const currentMeeting=async()=>{
+ const service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+ const r=await fetch(Deno.env.get('SUPABASE_URL')+'/rest/v1/meeting_settings?id=eq.1&select=meeting_date,start_time,end_time,venue,address,revision',{
+  headers:{apikey:service,Authorization:'Bearer '+service},signal:AbortSignal.timeout(10000)
+ });
+ if(!r.ok)throw Error('Meeting lookup failed');
+ const m=(await r.json())[0];
+ if(!m||!/^\d{4}-\d{2}-\d{2}$/.test(m.meeting_date)||typeof m.venue!=='string'||!m.venue.trim())throw Error('Meeting lookup failed');
+ return m;
+};
 // Test checkout only: test orders never change a real visitor's paid status.
 const paymentAction=async(b:any)=>{
  const key=(await niaSecret('RAZORPAY_KEY_ID'))||'',keySecret=(await niaSecret('RAZORPAY_KEY_SECRET'))||'';
@@ -31,7 +42,14 @@ const paymentAction=async(b:any)=>{
  let order=await getOrder();
  if(b.action==='create_order'){
   if(!order){
-   const created=await rp('orders',{amount:260000,currency:'INR',receipt:'nia_'+b.request_id.replaceAll('-',''),notes:{event:'NIA Hyderabad visitor 2026-10-14',mode:'test'}});
+   // Preserve the enquiry's meeting date if staff later schedules a new meeting.
+   const leadResponse=await fetch(base+'visitor_requests?request_id=eq.'+id+'&select=leads(attribution)',{headers:dbHeaders});
+   if(!leadResponse.ok)throw Error('Unable to check enquiry meeting.');
+   const enquiry=(await leadResponse.json())[0];
+   const linked=Array.isArray(enquiry?.leads)?enquiry.leads[0]:enquiry?.leads;
+   const eventDate=linked?.attribution?.event;
+   if(typeof eventDate!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(eventDate))throw Error('Unable to check enquiry meeting.');
+   const created=await rp('orders',{amount:260000,currency:'INR',receipt:'nia_'+b.request_id.replaceAll('-',''),notes:{event:'NIA Hyderabad visitor '+eventDate,mode:'test'}});
    if(created.amount!==260000||created.currency!=='INR'||!/^order_[A-Za-z0-9]+$/.test(created.id))throw Error('Unexpected test order response.');
    const saved=await fetch(base+'visitor_test_orders',{method:'POST',headers:dbHeaders,body:JSON.stringify({request_id:b.request_id,order_id:created.id,amount:260000,currency:'INR'})});
    if(!saved.ok&&saved.status!==409)throw Error('Unable to save test order. No payment has been taken.');
@@ -96,7 +114,8 @@ Deno.serve(async(req:Request)=>{
   if(!/^91[6-9][0-9]{9}$/.test(phone))return reply(400,{error:'Enter a valid Indian mobile number'});
   if(!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(b.request_id))return reply(400,{error:'Invalid request identifier'});
   if(b.years_in_business!==undefined&&b.years_in_business!==''&&(!Number.isInteger(Number(b.years_in_business))||Number(b.years_in_business)<0||Number(b.years_in_business)>150))return reply(400,{error:'Check years in business'});
-  const attribution:Record<string,string>={years_in_business:String(b.years_in_business||''),event:'2026-10-14',consent_at:new Date().toISOString()};
+  let meeting;try{meeting=await currentMeeting();}catch{return reply(503,{error:'Meeting details are unavailable. Please retry or contact NIA.'});}
+  const attribution:Record<string,string>={years_in_business:String(b.years_in_business||''),event:meeting.meeting_date,event_start_time:meeting.start_time,event_end_time:meeting.end_time,event_venue:meeting.venue,event_address:meeting.address||'',event_revision:String(meeting.revision),consent_at:new Date().toISOString()};
   for(const k of ['utm_source','utm_medium','utm_campaign','utm_content','utm_term'])attribution[k]=String(b.attribution?.[k]||'').slice(0,200);
   const secret=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const ip=req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()||'unknown';
