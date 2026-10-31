@@ -104,7 +104,8 @@ Deno.serve(async(req:Request)=>{
  if(Number(req.headers.get('content-length')||0)>8000)return reply(413,{error:'Request too large'});
  try{
   const raw=await req.text();if(raw.length>8000)return reply(413,{error:'Request too large'});const b=JSON.parse(raw);
-  if(['payment_config','create_order','verify_payment'].includes(b.action))return await paymentAction(b);
+  // Public test checkout has been retired while Razorpay reviews the live website.
+  if(['payment_config','create_order','verify_payment'].includes(b.action))return reply(410,{error:'Online booking is not available yet. Please contact NIA on WhatsApp.'});
   if(b.website)return reply(400,{error:'Unable to submit'});
   if(b.consent!==true)return reply(400,{error:'Contact consent is required'});
   const clean=(key:string,max:number,required=true)=>{const v=String(b[key]||'').trim();if(v.length>max||(required&&!v))throw Error('Check '+key);return v;};
