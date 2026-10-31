@@ -34,7 +34,7 @@ Deno.serve(async(req:Request)=>{
   if(!inserted.ok)return reply(409,{error:'Send already started; refresh before retrying.'});
   const patch=async(state:string,message_id:string|null=null)=>fetch(base+'/rest/v1/wa_outgoing?request_id=eq.'+request_id,{method:'PATCH',headers:db,body:JSON.stringify({state,message_id})});
   try{
-   const token=(await niaSecret('WHATSAPP_ACCESS_TOKEN')),number=Deno.env.get('WHATSAPP_PHONE_NUMBER_ID');
+   const token=(await niaSecret('WHATSAPP_ACCESS_TOKEN')),number=(await niaSecret('WHATSAPP_PHONE_NUMBER_ID'));
    if(!token||!number){await patch('failed');return reply(503,{error:'WhatsApp is not configured'});}
    const sent=await fetch('https://graph.facebook.com/v25.0/'+number+'/messages',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({messaging_product:'whatsapp',to:contact_id,type:'text',text:{body}}),signal:AbortSignal.timeout(15000)});
    const result=await sent.json();

@@ -8,6 +8,11 @@ function compatible(components:any[],media:any=null){
   return false;
  });
 }
+async function niaSecret(name:string):Promise<string|undefined>{
+ const service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,base=Deno.env.get('SUPABASE_URL')!;
+ const r=await fetch(base+'/rest/v1/rpc/nia_config_read',{method:'POST',headers:{apikey:service,Authorization:'Bearer '+service,'Content-Type':'application/json'},body:JSON.stringify({p_name:name}),signal:AbortSignal.timeout(5000)});
+ if(!r.ok)throw Error('Credential storage unavailable');const value=await r.json();return value===null?Deno.env.get(name):value;
+}
 const origin='https://niahyderabad1-lgtm.github.io';
 Deno.serve(async(req:Request)=>{
  const headers={'Content-Type':'application/json','Access-Control-Allow-Origin':origin,'Access-Control-Allow-Headers':'authorization,apikey,content-type','Access-Control-Allow-Methods':'POST,OPTIONS','Vary':'Origin'};
@@ -25,8 +30,8 @@ Deno.serve(async(req:Request)=>{
   const staff=await fetch(base+'/rest/v1/crm_staff?user_id=eq.'+encodeURIComponent(user.id)+'&select=user_id',{headers:db});
   if(!staff.ok||!(await staff.json()).length)return reply(403,{error:'Staff access required'});
   const raw=await req.text();if(raw.length>7500000)return reply(413,{error:'Request too large'});
-  const input=JSON.parse(raw),token=Deno.env.get('WHATSAPP_ACCESS_TOKEN'),waba=Deno.env.get('WHATSAPP_WABA_ID');
-  if(!token||waba!=='1747796306429948')return reply(503,{error:'Template connection unavailable'});
+  const input=JSON.parse(raw),token=await niaSecret('WHATSAPP_ACCESS_TOKEN'),waba=await niaSecret('WHATSAPP_WABA_ID');
+  if(!token||!/^\d+$/.test(waba||''))return reply(503,{error:'Template connection unavailable'});
   const graph='https://graph.facebook.com/v25.0/'+waba+'/message_templates';
   const metaHeaders={Authorization:'Bearer '+token,'Content-Type':'application/json'};
   if(input.action==='upload'){

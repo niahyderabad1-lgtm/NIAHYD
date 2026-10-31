@@ -15,7 +15,7 @@ Deno.serve(async(req:Request)=>{
    ?response(200,p.get('hub.challenge')||''):response(403,'Verification failed');
  }
  if(req.method!=='POST')return response(405,'Method not allowed');
- const number=Deno.env.get('WHATSAPP_PHONE_NUMBER_ID'),waba=Deno.env.get('WHATSAPP_WABA_ID');
+ const number=await niaSecret('WHATSAPP_PHONE_NUMBER_ID'),waba=await niaSecret('WHATSAPP_WABA_ID');
  if(!secret||!number||!waba)return response(503,'Not configured');
  try{
   // Bound body memory even when content-length is missing.

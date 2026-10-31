@@ -20,9 +20,10 @@ create function public.nia_config_save(p_name text,p_value text) returns void la
 declare sid uuid;
 begin
 if not public.nia_config_is_admin() then raise exception 'Administrator access required' using errcode='42501'; end if;
-if not p_name = any(array['WHATSAPP_ACCESS_TOKEN','WHATSAPP_VERIFY_TOKEN','META_APP_SECRET','META_PAGE_ACCESS_TOKEN','RAZORPAY_KEY_ID','RAZORPAY_KEY_SECRET','RAZORPAY_WEBHOOK_SECRET']) or p_name is null then raise exception 'Unsupported setting'; end if;
+if not p_name = any(array['WHATSAPP_ACCESS_TOKEN','WHATSAPP_PHONE_NUMBER_ID','WHATSAPP_WABA_ID','WHATSAPP_VERIFY_TOKEN','META_APP_SECRET','META_PAGE_ACCESS_TOKEN','META_FACEBOOK_PAGE_ID','META_INSTAGRAM_ACCOUNT_ID','RAZORPAY_KEY_ID','RAZORPAY_KEY_SECRET','RAZORPAY_WEBHOOK_SECRET']) or p_name is null then raise exception 'Unsupported setting'; end if;
 if p_value is null or length(trim(p_value))<8 or length(p_value)>8192 or p_value ~ '[\r\n]' then raise exception 'Check credential format'; end if;
 if p_name='RAZORPAY_KEY_ID' and p_value not like 'rzp_test_%' then raise exception 'Only test payment credentials are supported'; end if;
+if p_name in ('WHATSAPP_PHONE_NUMBER_ID','WHATSAPP_WABA_ID','META_FACEBOOK_PAGE_ID','META_INSTAGRAM_ACCOUNT_ID') and p_value !~ '^[0-9]+$' then raise exception 'Use the numeric ID from Meta'; end if;
 perform pg_advisory_xact_lock(hashtext('nia_config:'||p_name));
 select id into sid from vault.secrets where name='nia_config:'||p_name;
 if sid is null then perform vault.create_secret(trim(p_value),'nia_config:'||p_name); else perform vault.update_secret(sid,trim(p_value)); end if;

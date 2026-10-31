@@ -9,6 +9,11 @@ function compatible(components:any[],media:any=null){
   return false;
  });
 }
+async function niaSecret(name:string):Promise<string|undefined>{
+ const service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,base=Deno.env.get('SUPABASE_URL')!;
+ const r=await fetch(base+'/rest/v1/rpc/nia_config_read',{method:'POST',headers:{apikey:service,Authorization:'Bearer '+service,'Content-Type':'application/json'},body:JSON.stringify({p_name:name}),signal:AbortSignal.timeout(5000)});
+ if(!r.ok)throw Error('Credential storage unavailable');const value=await r.json();return value===null?Deno.env.get(name):value;
+}
 const origin='https://niahyderabad1-lgtm.github.io';
 Deno.serve(async(req:Request)=>{
  const headers={'Content-Type':'application/json','Access-Control-Allow-Origin':origin,'Access-Control-Allow-Headers':'authorization,apikey,content-type','Access-Control-Allow-Methods':'POST,OPTIONS','Vary':'Origin'};
@@ -27,12 +32,12 @@ Deno.serve(async(req:Request)=>{
   if(!staff.ok||!(await staff.json()).length)return reply(403,{error:'Staff access required'});
   const raw=await req.text();if(raw.length>2000)return reply(413,{error:'Request too large'});
   const {campaign_id}=JSON.parse(raw);if(!/^[0-9a-f-]{36}$/i.test(campaign_id))return reply(400,{error:'Invalid campaign'});
-  const token=Deno.env.get('WHATSAPP_ACCESS_TOKEN'),number=Deno.env.get('WHATSAPP_PHONE_NUMBER_ID');
-  if(!token||number!=='1266052096601533')return reply(503,{error:'Broadcast sender unavailable'});
+  const token=await niaSecret('WHATSAPP_ACCESS_TOKEN'),number=await niaSecret('WHATSAPP_PHONE_NUMBER_ID'),waba=await niaSecret('WHATSAPP_WABA_ID');
+  if(!token||!/^\d+$/.test(number||'')||!/^\d+$/.test(waba||''))return reply(503,{error:'Broadcast sender unavailable'});
   const campaigns=await fetch(base+'/rest/v1/wa_campaigns?id=eq.'+campaign_id+'&select=template,language,template_definition',{headers:db});
   if(!campaigns.ok)return reply(503,{error:'Cannot load campaign'});const campaign=(await campaigns.json())[0];if(!campaign)return reply(404,{error:'Campaign not found'});
   if(campaign.template==='hello_world')return reply(409,{error:'hello_world is for Meta test numbers. Choose a production template.'});
-  const checked=await fetch('https://graph.facebook.com/v25.0/1747796306429948/message_templates?name='+encodeURIComponent(campaign.template)+'&fields=name,language,status,components',{headers:{Authorization:'Bearer '+token},signal:AbortSignal.timeout(10000)});
+  const checked=await fetch('https://graph.facebook.com/v25.0/'+waba+'/message_templates?name='+encodeURIComponent(campaign.template)+'&fields=name,language,status,components',{headers:{Authorization:'Bearer '+token},signal:AbortSignal.timeout(10000)});
   const remote=await checked.json();if(!checked.ok)return reply(503,{error:'Cannot verify current template approval'});
   const template=(remote.data||[]).find((t:any)=>t.name===campaign.template&&t.language===campaign.language&&t.status==='APPROVED');
   const mediaRow=await fetch(base+'/rest/v1/wa_templates?name=eq.'+encodeURIComponent(campaign.template)+'&language=eq.'+encodeURIComponent(campaign.language)+'&select=wa_media(*)',{headers:db});if(!mediaRow.ok)return reply(503,{error:'Cannot load media reference'});const media=(await mediaRow.json())[0]?.wa_media;
