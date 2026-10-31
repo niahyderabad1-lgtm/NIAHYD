@@ -1,0 +1,10 @@
+name = "nia-hyderabad-gateway"
+main = "src/index.js"
+compatibility_date = "2026-11-01"
+workers_dev = true
+
+# Public, non-sensitive configuration only. Add the values below as encrypted
+# secrets in Cloudflare rather than placing them in this file or GitHub.
+[vars]
+ALLOWED_ORIGIN = "https://niahyderabad1-lgtm.github.io"
+
