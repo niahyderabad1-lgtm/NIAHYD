@@ -54,14 +54,24 @@ async function requireStaff(request, env) {
 
 async function graph(env, path, init = {}) {
   requireEnvironment(env, ["WHATSAPP_ACCESS_TOKEN"]);
-  return fetch(`https://graph.facebook.com/v25.0/${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${env.WHATSAPP_ACCESS_TOKEN}`,
-      "content-type": "application/json",
-      ...(init.headers || {}),
-    },
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort("Meta request timed out"), 15000);
+  try {
+    return await fetch(`https://graph.facebook.com/v25.0/${path}`, {
+      ...init,
+      signal: controller.signal,
+      headers: {
+        Authorization: `Bearer ${env.WHATSAPP_ACCESS_TOKEN}`,
+        "content-type": "application/json",
+        ...(init.headers || {}),
+      },
+    });
+  } catch (error) {
+    if (controller.signal.aborted) throw new Error("Meta request timed out. Please retry.");
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function syncTemplates(env) {
@@ -109,23 +119,31 @@ async function submitTemplate(env, id) {
   if (!locked.ok) throw new Error("Cannot reserve draft");
   const template = (await locked.json())[0];
   if (!template) throw new Error("Draft already submitted. Refresh statuses before retrying.");
-  const meta = await graph(env, `${env.WHATSAPP_WABA_ID}/message_templates`, {
-    method: "POST",
-    body: JSON.stringify({
-      name: template.name,
-      language: template.language,
-      category: template.category,
-      components: template.components,
-    }),
-  });
-  const result = await meta.json();
-  const state = meta.ok ? result.status || "PENDING" : "DRAFT";
-  await supabase(env, `/rest/v1/wa_templates?id=eq.${template.id}`, {
-    method: "PATCH",
-    body: JSON.stringify({ status: state, meta_id: result.id || null, updated_at: new Date().toISOString() }),
-  });
-  if (!meta.ok) throw new Error(`Meta rejected template submission (code ${result.error?.code || "unknown"}). ${result.error?.error_user_msg || "Check content and account permissions."}`);
-  return { status: state };
+  try {
+    const meta = await graph(env, `${env.WHATSAPP_WABA_ID}/message_templates`, {
+      method: "POST",
+      body: JSON.stringify({
+        name: template.name,
+        language: template.language,
+        category: template.category,
+        components: template.components,
+      }),
+    });
+    const result = await meta.json();
+    const state = meta.ok ? result.status || "PENDING" : "DRAFT";
+    await supabase(env, `/rest/v1/wa_templates?id=eq.${template.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status: state, meta_id: result.id || null, updated_at: new Date().toISOString() }),
+    });
+    if (!meta.ok) throw new Error(`Meta rejected template submission (code ${result.error?.code || "unknown"}). ${result.error?.error_user_msg || "Check content and account permissions."}`);
+    return { status: state };
+  } catch (error) {
+    await supabase(env, `/rest/v1/wa_templates?id=eq.${template.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status: "DRAFT", updated_at: new Date().toISOString() }),
+    });
+    throw error;
+  }
 }
 
 async function whatsappTemplates(request, env) {
