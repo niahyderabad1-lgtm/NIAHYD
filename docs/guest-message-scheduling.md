@@ -18,6 +18,8 @@ template for each message.
 3. Deploy a server-side dispatcher that claims only due `scheduled` jobs and
    sends them with the WhatsApp Cloud API. It must mark timeouts as
    `uncertain`, not retry them automatically.
+   The Cloudflare gateway invokes it every five minutes using the shared
+   `NIA_SCHEDULER_SECRET`; this secret exists only in the two providers.
 4. After Razorpay verifies a payment, the payment webhook calls
    `schedule_paid_guest_messages(lead_id)` with the service role.
 5. Run a controlled test with one internal paid guest before enabling any rule.

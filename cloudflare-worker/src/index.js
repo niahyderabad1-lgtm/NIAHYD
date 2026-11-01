@@ -180,4 +180,26 @@ export default {
       return response(request, env, { error: message }, status);
     }
   },
+  async scheduled(_event, env, ctx) {
+    const endpoint = `${env.SUPABASE_URL}/functions/v1/guest-message-dispatch`;
+    if (!env.NIA_SCHEDULER_SECRET || !env.SUPABASE_PUBLISHABLE_KEY) {
+      console.error("Guest scheduler is not configured");
+      return;
+    }
+    ctx.waitUntil((async () => {
+      try {
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            apikey: env.SUPABASE_PUBLISHABLE_KEY,
+            Authorization: `Bearer ${env.SUPABASE_PUBLISHABLE_KEY}`,
+            "x-nia-scheduler-secret": env.NIA_SCHEDULER_SECRET,
+          },
+        });
+        if (!response.ok) console.error("Guest scheduler failed", response.status);
+      } catch (error) {
+        console.error("Guest scheduler failed", error instanceof Error ? error.message : error);
+      }
+    })());
+  },
 };
