@@ -23,3 +23,8 @@ document.querySelector('#demo').addEventListener('click',clear);
 window.niaAuth.auth.onAuthStateChange(()=>{clear();setTimeout(refresh,0);});
 if(!workspace.hidden)refresh();
 })();
+
+// Loaded after the CRM's shared UI, auth and meeting utilities are ready.
+const guestMessageSchedulerScript=document.createElement('script');
+guestMessageSchedulerScript.src='crm-guest-messages.js?v=20261101-schedule';
+document.body.append(guestMessageSchedulerScript);
