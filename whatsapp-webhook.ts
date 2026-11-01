@@ -44,6 +44,14 @@ Deno.serve(async(req:Request)=>{
   if(rows.length){const service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
    const stored=await fetch(Deno.env.get('SUPABASE_URL')+'/rest/v1/wa_events?on_conflict=event_key',{method:'POST',headers:{apikey:service,Authorization:'Bearer '+service,'Content-Type':'application/json',Prefer:'resolution=ignore-duplicates,return=minimal'},body:JSON.stringify(rows)});
    if(!stored.ok)return response(503,'Please retry');
+   // Keep the personalised-message queue in sync with Meta delivery receipts.
+   // "sent" remains accepted; only terminal/visible delivery states replace it.
+   for(const row of rows.filter(r=>r.kind==='status')){
+    const state=row.status==='delivered'||row.status==='read'||row.status==='failed'?row.status:null;
+    if(!state)continue;
+    const synced=await fetch(Deno.env.get('SUPABASE_URL')+'/rest/v1/guest_message_jobs?provider_message_id=eq.'+encodeURIComponent(row.message_id),{method:'PATCH',headers:{apikey:service,Authorization:'Bearer '+service,'Content-Type':'application/json'},body:JSON.stringify({state,error_code:state==='failed'?row.body:'',updated_at:new Date().toISOString()})});
+    if(!synced.ok)return response(503,'Please retry');
+   }
   }
   // Honour explicit opt-out replies before returning success.
   const stops=rows.filter(r=>r.kind==='incoming'&&/^(stop|unsubscribe|opt out)$/i.test(r.body.trim()));
