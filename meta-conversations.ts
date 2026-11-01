@@ -1,5 +1,5 @@
 // Facebook Login / Page access token route. No credentials are returned to the browser.
-const origin='https://niahyderabad1-lgtm.github.io';
+const origin='https://hyderabad.networkinaction.info';
 Deno.serve(async(req:Request)=>{
  const headers={'Content-Type':'application/json','Access-Control-Allow-Origin':origin,'Access-Control-Allow-Headers':'authorization,apikey,content-type','Access-Control-Allow-Methods':'POST,OPTIONS'};
  const reply=(status:number,data:any)=>new Response(JSON.stringify(data),{status,headers});

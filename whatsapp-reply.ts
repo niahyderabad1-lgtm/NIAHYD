@@ -5,7 +5,7 @@ async function niaSecret(name:string):Promise<string|undefined>{
  if(!response.ok)throw Error('Credential storage unavailable');
  const value=await response.json();return value===null?Deno.env.get(name):value;
 }
-const origin='https://niahyderabad1-lgtm.github.io';
+const origin='https://hyderabad.networkinaction.info';
 Deno.serve(async(req:Request)=>{
  const headers={'Content-Type':'application/json','Access-Control-Allow-Origin':origin,'Access-Control-Allow-Headers':'authorization,apikey,content-type','Access-Control-Allow-Methods':'POST,OPTIONS','Vary':'Origin'};
  const reply=(status:number,data:any)=>new Response(JSON.stringify({...data,...(data.error?{message:data.error+(data.code?' (Meta '+data.code+')':'')}: {})}),{status,headers});

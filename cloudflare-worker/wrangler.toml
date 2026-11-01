@@ -6,7 +6,7 @@ workers_dev = true
 # Public, non-sensitive configuration only. Add the values below as encrypted
 # secrets in Cloudflare rather than placing them in this file or GitHub.
 [vars]
-ALLOWED_ORIGIN = "https://niahyderabad1-lgtm.github.io"
+ALLOWED_ORIGIN = "https://hyderabad.networkinaction.info"
 SUPABASE_URL = "https://mtrfipelhvuvqkjwgiif.supabase.co"
 WHATSAPP_WABA_ID = "28487797780889906"
 SUPABASE_PUBLISHABLE_KEY = "sb_publishable_zv-qxckLOIND2xmCarlkbQ_Yp-RTy8j"

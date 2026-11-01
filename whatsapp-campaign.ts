@@ -14,7 +14,7 @@ async function niaSecret(name:string):Promise<string|undefined>{
  const r=await fetch(base+'/rest/v1/rpc/nia_config_read',{method:'POST',headers:{apikey:service,Authorization:'Bearer '+service,'Content-Type':'application/json'},body:JSON.stringify({p_name:name}),signal:AbortSignal.timeout(5000)});
  if(!r.ok)throw Error('Credential storage unavailable');const value=await r.json();return value===null?Deno.env.get(name):value;
 }
-const origin='https://niahyderabad1-lgtm.github.io';
+const origin='https://hyderabad.networkinaction.info';
 Deno.serve(async(req:Request)=>{
  const headers={'Content-Type':'application/json','Access-Control-Allow-Origin':origin,'Access-Control-Allow-Headers':'authorization,apikey,content-type','Access-Control-Allow-Methods':'POST,OPTIONS','Vary':'Origin'};
  const reply=(status:number,data:unknown)=>new Response(JSON.stringify(data),{status,headers});

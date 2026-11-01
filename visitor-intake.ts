@@ -5,7 +5,7 @@ async function niaSecret(name:string):Promise<string|undefined>{
  if(!response.ok)throw Error('Credential storage unavailable');
  const value=await response.json();return value===null?Deno.env.get(name):value;
 }
-const allowedOrigin = 'https://niahyderabad1-lgtm.github.io';
+const allowedOrigin = 'https://hyderabad.networkinaction.info';
 const headers = {'Access-Control-Allow-Origin': allowedOrigin,'Access-Control-Allow-Headers':'content-type,apikey,authorization','Access-Control-Allow-Methods':'POST,OPTIONS','Vary':'Origin','Content-Type':'application/json'};
 const reply=(status:number,value:unknown)=>new Response(JSON.stringify(value),{status,headers});
 // Resolve the published meeting on the server; never trust a browser-supplied event.
