@@ -7,4 +7,6 @@ workers_dev = true
 # secrets in Cloudflare rather than placing them in this file or GitHub.
 [vars]
 ALLOWED_ORIGIN = "https://niahyderabad1-lgtm.github.io"
+SUPABASE_URL = "https://mtrfipelhvuvqkjwgiif.supabase.co"
+WHATSAPP_WABA_ID = "28487797780889906"
 
