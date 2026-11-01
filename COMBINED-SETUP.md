@@ -10,4 +10,4 @@ Remaining for paid registration: add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in 
 
 Remaining for live advertising: configure Meta Pixel/Conversions API and consent choices; use campaign-tagged URLs. The CRM's campaign summary reports stored leads and verified payments, not Meta ad spend or impressions.
 
-Member directory content from nia-atlas-roster is a separate private module and is not published in this public visitor site. This project combines the two NIA landing/lead repositories specified by the user.
+Member directory content from nia-atlas-roster is a separate private module and is not published in this public guest site. This project combines the two NIA landing/lead repositories specified by the user.

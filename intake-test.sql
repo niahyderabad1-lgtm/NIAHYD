@@ -7,4 +7,4 @@ do $$ declare rid uuid:=gen_random_uuid(); a uuid; b uuid; begin
  if not exists(select 1 from public.leads where id=a and payment_status='unpaid' and attribution->>'utm_campaign'='fictional-test') then raise exception 'Invalid saved lead'; end if;
 end $$;
 rollback;
-select 'Visitor intake and retry checks passed; fictional rows rolled back' as result;
+select 'Guest intake and retry checks passed; fictional rows rolled back' as result;

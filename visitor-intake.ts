@@ -19,7 +19,7 @@ const currentMeeting=async()=>{
  if(!m||!/^\d{4}-\d{2}-\d{2}$/.test(m.meeting_date)||typeof m.venue!=='string'||!m.venue.trim())throw Error('Meeting lookup failed');
  return m;
 };
-// Test checkout only: test orders never change a real visitor's paid status.
+// Test checkout only: test orders never change a real guest's paid status.
 const paymentAction=async(b:any)=>{
  const key=(await niaSecret('RAZORPAY_KEY_ID'))||'',keySecret=(await niaSecret('RAZORPAY_KEY_SECRET'))||'';
  if(!key.startsWith('rzp_test_')||!keySecret)return reply(503,{error:'Test payment settings are incomplete. Contact NIA.'});
@@ -37,7 +37,7 @@ const paymentAction=async(b:any)=>{
  const id=encodeURIComponent(b.request_id);
  const vr=await fetch(base+'visitor_requests?request_id=eq.'+id+'&select=request_id,created_at',{headers:dbHeaders});
  if(!vr.ok)throw Error('Unable to check your enquiry.');const requests=await vr.json();
- if(requests.length!==1||Date.now()-Date.parse(requests[0].created_at)>86400000)return reply(400,{error:'Please submit a fresh visitor enquiry.'});
+ if(requests.length!==1||Date.now()-Date.parse(requests[0].created_at)>86400000)return reply(400,{error:'Please submit a fresh guest enquiry.'});
  const getOrder=async()=>{const r=await fetch(base+'visitor_test_orders?request_id=eq.'+id+'&select=order_id,amount,currency,payment_id,verified_at',{headers:dbHeaders});if(!r.ok)throw Error('Test payment storage is unavailable.');return (await r.json())[0];};
  let order=await getOrder();
  if(b.action==='create_order'){
@@ -49,7 +49,7 @@ const paymentAction=async(b:any)=>{
    const linked=Array.isArray(enquiry?.leads)?enquiry.leads[0]:enquiry?.leads;
    const eventDate=linked?.attribution?.event;
    if(typeof eventDate!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(eventDate))throw Error('Unable to check enquiry meeting.');
-   const created=await rp('orders',{amount:260000,currency:'INR',receipt:'nia_'+b.request_id.replaceAll('-',''),notes:{event:'NIA Hyderabad visitor '+eventDate,mode:'test'}});
+   const created=await rp('orders',{amount:260000,currency:'INR',receipt:'nia_'+b.request_id.replaceAll('-',''),notes:{event:'NIA Hyderabad guest '+eventDate,mode:'test'}});
    if(created.amount!==260000||created.currency!=='INR'||!/^order_[A-Za-z0-9]+$/.test(created.id))throw Error('Unexpected test order response.');
    const saved=await fetch(base+'visitor_test_orders',{method:'POST',headers:dbHeaders,body:JSON.stringify({request_id:b.request_id,order_id:created.id,amount:260000,currency:'INR'})});
    if(!saved.ok&&saved.status!==409)throw Error('Unable to save test order. No payment has been taken.');

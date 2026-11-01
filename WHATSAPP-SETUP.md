@@ -6,7 +6,7 @@ The signed incoming webhook is deployed and a real incoming message was verified
 
 Broadcast workflow:
 1. Sign in with approved staff access.
-2. Record each contact's marketing opt-in with evidence. A visitor enquiry alone is not marketing consent.
+2. Record each contact's marketing opt-in with evidence. A guest enquiry alone is not marketing consent.
 3. Filter leads by search and stage, then create a draft. The server includes only opted-in contacts and removes duplicates.
 4. Review the recipient preview and launch. The worker processes up to five recipients per action; use Process next 5 for remaining recipients.
 5. Check incoming/status events for delivery. Meta acceptance alone does not confirm delivery.

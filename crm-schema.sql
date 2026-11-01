@@ -12,7 +12,7 @@ create table public.leads (
  company text not null check (char_length(company) between 1 and 150),
  category text not null check (char_length(category) between 1 and 100),
  email text not null default '',
- stage text not null default 'New enquiry' check (stage in ('New enquiry','Contacted','Qualified','Paid visitor','Attended','Membership discussion','Joined','Not proceeding')),
+ stage text not null default 'New enquiry' check (stage in ('New enquiry','Contacted','Qualified','Paid guest','Attended','Membership discussion','Joined','Not proceeding')),
  payment_status text not null default 'unpaid' check (payment_status in ('unpaid','paid','refunded')),
  payment_reference text,
  owner text not null default '',

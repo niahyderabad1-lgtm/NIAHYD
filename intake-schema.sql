@@ -15,7 +15,7 @@ begin
  select lead_id into result from public.visitor_requests where request_id=p_request_id;
  if result is not null then return result; end if;
  if (select count(*) from public.leads where phone=p_phone and created_at>now()-interval '1 hour')>=3 then raise exception 'Too many requests'; end if;
- insert into public.leads(name,phone,company,category,email,source,attribution) values(p_name,p_phone,p_company,p_category,p_email,'Visitor landing page · '||p_route,p_attribution) returning id into result;
+ insert into public.leads(name,phone,company,category,email,source,attribution) values(p_name,p_phone,p_company,p_category,p_email,'Guest landing page · '||p_route,p_attribution) returning id into result;
  insert into public.visitor_requests(request_id,lead_id) values(p_request_id,result);
  return result;
 end;$$;

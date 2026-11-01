@@ -1,6 +1,6 @@
 # CRM setup
 
-The CRM screen is at `crm.html` alongside the visitor page. Until Supabase is configured, only an in-memory fictional sample is available. No real lead records are stored in GitHub.
+The CRM screen is at `crm.html` alongside the guest page. Until Supabase is configured, only an in-memory fictional sample is available. No real lead records are stored in GitHub.
 
 ## Supabase setup
 

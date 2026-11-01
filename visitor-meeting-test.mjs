@@ -23,7 +23,7 @@ assert.equal(captured[0].p_attribution.event,'2026-11-11');assert.equal(captured
 lookupFails=true;assert.equal((await handler(req({...data,request_id:'33333333-3333-4333-8333-333333333333'}))).status,503);assert.equal(captured.length,1);lookupFails=false;
 assert.equal((await handler(req({...data,consent:false}))).status,400);assert.equal(captured.length,1);
 publishedDate='2026-11-18';
-assert.equal((await handler(req({action:'create_order',request_id:rid}))).status,200);assert.equal(rpOrders[0].notes.event,'NIA Hyderabad visitor 2026-11-11');
+assert.equal((await handler(req({action:'create_order',request_id:rid}))).status,200);assert.equal(rpOrders[0].notes.event,'NIA Hyderabad guest 2026-11-11');
 // Retrying an existing order must reuse it, even if the meeting lookup is unavailable.
 lookupFails=true;assert.equal((await handler(req({action:'create_order',request_id:rid}))).status,200);assert.equal(rpOrders.length,1);
 assert(!requests.some(([url,method])=>method==='PATCH'&&url.includes('/leads')));
