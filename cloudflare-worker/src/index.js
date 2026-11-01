@@ -160,7 +160,16 @@ export default {
     if (!headers) return json({ error: "Origin denied" }, 403);
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers });
     const url = new URL(request.url);
-    if (url.pathname === "/health") return response(request, env, { ok: true, service: "nia-hyderabad-gateway" });
+    if (url.pathname === "/health") return response(request, env, {
+      ok: true,
+      service: "nia-hyderabad-gateway",
+      revision: "20261101-template-status-v2",
+      configured: {
+        supabase: Boolean(env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY),
+        whatsappToken: Boolean(env.WHATSAPP_ACCESS_TOKEN),
+        whatsappBusinessAccount: Boolean(env.WHATSAPP_WABA_ID),
+      },
+    });
     if (request.method !== "POST") return response(request, env, { error: "POST required" }, 405);
     try {
       if (url.pathname === "/whatsapp/templates") return response(request, env, await whatsappTemplates(request, env));
