@@ -7,6 +7,10 @@ const privacySummary=document.querySelector('#privacy p');if(privacySummary)priv
 const config=window.NIA_CONFIG||{};let requestId=crypto.randomUUID(),busy=false;
 const params=new URLSearchParams(location.search),attribution={};for(const k of ['utm_source','utm_medium','utm_campaign','utm_content','utm_term'])attribution[k]=(params.get(k)||'').slice(0,200);
 const api=async body=>{const r=await fetch(config.supabaseUrl+'/functions/v1/visitor-intake',{method:'POST',headers:{'Content-Type':'application/json',apikey:config.publishableKey},body:JSON.stringify(body)});const result=await r.json();if(!r.ok)throw Error(result.error||'Unable to complete this request.');return result;};
+const cookie=name=>document.cookie.split('; ').find(v=>v.startsWith(name+'='))?.slice(name.length+1)||'';
+const loadMetaPixel=()=>{const id=String(config.metaPixelId||'');if(!/^\d+$/.test(id))return false;if(!window.fbq){const q=(...args)=>q.callMethod?q.callMethod(...args):q.queue.push(args);q.queue=[];q.loaded=true;q.version='2.0';window.fbq=q;const s=document.createElement('script');s.async=true;s.src='https://connect.facebook.net/en_US/fbevents.js';document.head.append(s);q('init',id)}return true};
+const trackMetaLead=()=>{if(loadMetaPixel())window.fbq('track','Lead',{}, {eventID:requestId})};
+const reportMetaLead=data=>fetch(config.supabaseUrl+'/functions/v1/meta-conversion',{method:'POST',headers:{'Content-Type':'application/json',apikey:config.publishableKey},body:JSON.stringify({request_id:requestId,name:data.name,phone:data.phone,email:data.email||'',page_url:location.href,fbp:cookie('_fbp'),fbc:cookie('_fbc')})}).catch(()=>{});
 form.addEventListener('input' ,()=>{requestId=crypto.randomUUID();document.querySelector('#whatsapp-next')?.remove()});
 const loadRazorpay=()=>new Promise((resolve,reject)=>{if(window.Razorpay)return resolve();const script=document.createElement('script');script.src='https://checkout.razorpay.com/v1/checkout.js';script.onload=resolve;script.onerror=()=>reject(Error('Secure checkout could not load. Please use WhatsApp or try again.'));document.head.append(script)});
 const whatsappLink=data=>{NiaMeeting.ready.then(()=>{const message=`Hello NIA Hyderabad! I am interested in ${NiaMeeting.description()} (₹2,600 including taxes and dinner).\nName: ${data.name}\nWhatsApp: ${data.phone}\nBusiness: ${data.company}\nCategory: ${data.category}${data.email?'\nEmail: '+data.email:''}\nPlease help me with the guest booking.`;const a=document.createElement('a');a.id='whatsapp-next';a.className='button';a.textContent='Continue to WhatsApp ↗';a.href='https://wa.me/917997994493?text='+encodeURIComponent(message);a.target='_blank';a.rel='noopener';status.after(a)})};
@@ -19,7 +23,7 @@ form.addEventListener('submit',async event=>{
  busy=true;for(const b of form.querySelectorAll('button'))b.disabled=true;document.querySelector('#whatsapp-next')?.remove();
  try{
   if(!config.intakeEnabled)throw Error('Guest booking is temporarily unavailable. Please contact NIA on WhatsApp.');
-  status.textContent='Saving your guest enquiry…';await api({...data,route,consent:true,request_id:requestId,attribution});saved=true;
+  status.textContent='Saving your guest enquiry…';await api({...data,route,consent:true,request_id:requestId,page_url:location.href,fbp:cookie('_fbp'),fbc:cookie('_fbc'),attribution});saved=true;trackMetaLead();reportMetaLead(data);
   if(route==='payment')await launchCheckout(data);else{status.textContent=(saved?'Your enquiry is saved in the NIA CRM. ':'')+'Continue to WhatsApp, then press Send to share your message. An enquiry does not reserve a seat.';whatsappLink(data);}
  }catch(e){status.textContent=e.message+' Your booking is not confirmed.';}finally{busy=false;for(const b of form.querySelectorAll('button'))b.disabled=false;status.scrollIntoView({block:'nearest',behavior:'smooth'})}
 });
