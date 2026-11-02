@@ -1,9 +1,10 @@
 // Public guest intake and private Razorpay reconciliation. Credentials are read
 // only from Supabase Vault (or a server environment fallback), never returned.
 async function niaSecret(name:string):Promise<string|undefined>{
+ const environmentValue=Deno.env.get(name);if(environmentValue)return environmentValue;
  const service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
  const r=await fetch(Deno.env.get('SUPABASE_URL')+'/rest/v1/rpc/nia_config_read',{method:'POST',headers:{apikey:service,Authorization:'Bearer '+service,'Content-Type':'application/json'},body:JSON.stringify({p_name:name}),signal:AbortSignal.timeout(5000)});
- if(!r.ok)throw Error('Credential storage unavailable');const value=await r.json();return value===null?Deno.env.get(name):value;
+ if(!r.ok)throw Error('Credential storage unavailable');return await r.json();
 }
 const allowedOrigin='https://hyderabad.networkinaction.info';
 const headers={'Access-Control-Allow-Origin':allowedOrigin,'Access-Control-Allow-Headers':'content-type,apikey,authorization','Access-Control-Allow-Methods':'POST,OPTIONS','Vary':'Origin','Content-Type':'application/json'};
