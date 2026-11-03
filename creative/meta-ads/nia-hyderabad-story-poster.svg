@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920">
+  <defs>
+    <linearGradient id="top" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#061c40" stop-opacity=".94"/><stop offset=".44" stop-color="#061c40" stop-opacity=".25"/><stop offset="1" stop-color="#061c40" stop-opacity=".85"/></linearGradient>
+  </defs>
+  <image href="nia-hyderabad-reel-background.png" width="1080" height="1920" preserveAspectRatio="xMidYMid slice"/>
+  <rect width="1080" height="1920" fill="url(#top)"/>
+  <text x="72" y="128" fill="#f6e9db" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" letter-spacing="5">NETWORK IN ACTION · HYDERABAD</text>
+  <rect x="72" y="164" width="92" height="7" fill="#e98132"/>
+  <text x="72" y="274" fill="white" font-family="Georgia, serif" font-size="76" font-weight="700">Connect.</text>
+  <text x="72" y="360" fill="white" font-family="Georgia, serif" font-size="76" font-weight="700">Collaborate.</text>
+  <text x="72" y="446" fill="#e98132" font-family="Georgia, serif" font-size="76" font-weight="700">Grow.</text>
+  <text x="72" y="1578" fill="#f6e9db" font-family="Arial, Helvetica, sans-serif" font-size="27">Experience NIA as a guest.</text>
+  <text x="72" y="1630" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="700">11 NOVEMBER 2026 · 6:00–9:00 PM</text>
+  <text x="72" y="1674" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="29">NOVOTEL HICC HYDERABAD</text>
+  <text x="72" y="1720" fill="#f6e9db" font-family="Arial, Helvetica, sans-serif" font-size="27">₹2,600 · taxes &amp; dinner included</text>
+  <rect x="72" y="1770" width="586" height="80" rx="4" fill="#e98132"/>
+  <text x="104" y="1822" fill="#061c40" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="700">EXPLORE A GUEST MEETING  →</text>
+  <text x="72" y="1894" fill="#f6e9db" font-family="Arial, Helvetica, sans-serif" font-size="22">hyderabad.networkinaction.info</text>
+</svg>

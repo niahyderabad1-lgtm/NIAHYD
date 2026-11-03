@@ -3,3 +3,5 @@
 .env.*
 !.env.example
 node_modules/
+supabase/.temp/
+nia_hyderabad_*.zip

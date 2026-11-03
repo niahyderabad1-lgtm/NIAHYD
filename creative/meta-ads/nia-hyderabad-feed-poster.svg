@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350">
+  <defs>
+    <linearGradient id="shade" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#061c40" stop-opacity=".96"/><stop offset=".58" stop-color="#061c40" stop-opacity=".62"/><stop offset="1" stop-color="#061c40" stop-opacity="0"/></linearGradient>
+  </defs>
+  <image href="nia-hyderabad-feed-background.png" width="1080" height="1350" preserveAspectRatio="xMidYMid slice"/>
+  <rect width="1080" height="1350" fill="url(#shade)"/>
+  <rect x="76" y="76" width="92" height="7" fill="#e98132"/>
+  <text x="76" y="135" fill="#f6e9db" font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="700" letter-spacing="5">NETWORK IN ACTION · HYDERABAD</text>
+  <text x="76" y="252" fill="white" font-family="Georgia, serif" font-size="76" font-weight="700">More than</text>
+  <text x="76" y="340" fill="white" font-family="Georgia, serif" font-size="76" font-weight="700">networking.</text>
+  <text x="76" y="428" fill="#e98132" font-family="Georgia, serif" font-size="76" font-weight="700">A growth engine.</text>
+  <text x="76" y="514" fill="#f6e9db" font-family="Arial, Helvetica, sans-serif" font-size="30">Meet ambitious Hyderabad business owners,</text>
+  <text x="76" y="554" fill="#f6e9db" font-family="Arial, Helvetica, sans-serif" font-size="30">build trusted relationships and explore NIA.</text>
+  <rect x="76" y="1005" width="570" height="4" fill="#e98132"/>
+  <text x="76" y="1064" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="700">GUEST MEETING · 11 NOVEMBER 2026</text>
+  <text x="76" y="1110" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="29">6:00–9:00 PM · NOVOTEL HICC HYDERABAD</text>
+  <text x="76" y="1154" fill="#f6e9db" font-family="Arial, Helvetica, sans-serif" font-size="28">₹2,600 · includes taxes &amp; dinner</text>
+  <rect x="76" y="1202" width="500" height="82" rx="4" fill="#e98132"/>
+  <text x="108" y="1255" fill="#061c40" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700">EXPLORE A GUEST MEETING  →</text>
+  <text x="76" y="1324" fill="#f6e9db" font-family="Arial, Helvetica, sans-serif" font-size="22">hyderabad.networkinaction.info</text>
+</svg>
