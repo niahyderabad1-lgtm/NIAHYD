@@ -77,3 +77,25 @@ begin
 end $$;
 revoke all on function public.meta_link_lead(uuid,uuid) from public,anon;
 grant execute on function public.meta_link_lead(uuid,uuid) to authenticated;
+
+create table if not exists public.meta_auto_replies (
+ thread_id uuid primary key references public.meta_threads(id) on delete cascade,
+ state text not null default 'reserved' check(state in ('reserved','accepted','unknown')),
+ message_id text,
+ created_at timestamptz not null default now(),
+ updated_at timestamptz not null default now()
+);
+alter table public.meta_auto_replies enable row level security;
+revoke all on public.meta_auto_replies from anon,authenticated;
+grant all on public.meta_auto_replies to service_role;
+create or replace function public.meta_claim_auto_reply(p_thread uuid)
+returns boolean language plpgsql security definer set search_path=public,pg_temp as $$
+declare claimed uuid;
+begin
+ insert into public.meta_auto_replies(thread_id)
+ select p_thread where not exists(select 1 from public.meta_messages where thread_id=p_thread and direction='outgoing')
+ on conflict do nothing returning thread_id into claimed;
+ return claimed is not null;
+end $$;
+revoke all on function public.meta_claim_auto_reply(uuid) from public,anon,authenticated;
+grant execute on function public.meta_claim_auto_reply(uuid) to service_role;

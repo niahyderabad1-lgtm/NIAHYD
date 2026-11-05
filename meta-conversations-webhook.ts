@@ -15,6 +15,17 @@ async function ingestInstantLead(value:any,pageId:string){
  const saved=await fetch(base+'/rest/v1/leads',{method:'POST',headers:{...db,Prefer:'return=representation'},body:JSON.stringify({name,phone,company,category,email,source:'Meta Instant Form · '+formId,attribution:{meta_lead_id:id,meta_page_id:pageId,meta_form_id:formId,meta_ad_id:record.ad_id,meta_adgroup_id:record.adgroup_id,meta_field_data:fields},notes:'Submitted a Meta Instant Form. Contact promptly.'})});const lead=(await saved.json())[0];if(!saved.ok||!lead?.id)throw Error('CRM lead creation failed');
  await fetch(base+'/rest/v1/meta_instant_form_leads?meta_lead_id=eq.'+id,{method:'PATCH',headers:db,body:JSON.stringify({lead_id:lead.id,status:'imported',updated_at:new Date().toISOString()})});
 }
+async function sendDefaultFirstReply(channel:'facebook'|'instagram',account:string,participant:string,threadId:string){
+ const service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,base=Deno.env.get('SUPABASE_URL')!,access=Deno.env.get('META_PAGE_ACCESS_TOKEN');if(!access)return;
+ const db={apikey:service,Authorization:'Bearer '+service,'Content-Type':'application/json'};
+ const claim=await fetch(base+'/rest/v1/rpc/meta_claim_auto_reply',{method:'POST',headers:db,body:JSON.stringify({p_thread:threadId})});
+ if(!claim.ok||!(await claim.json()))return;
+ const body='Thank you for reaching out to NIA - Network In Action. We have received your enquiry. Explore more at https://networkinaction.info/';
+ let result:any;try{const response=await fetch('https://graph.facebook.com/v25.0/'+account+'/messages',{method:'POST',headers:{Authorization:'Bearer '+access,'Content-Type':'application/json'},body:JSON.stringify({recipient:{id:participant},message:{text:body},...(channel==='facebook'?{messaging_type:'RESPONSE'}:{})})});result=await response.json();if(!response.ok||!result?.message_id)throw Error('Meta send failed');}
+ catch{await fetch(base+'/rest/v1/meta_auto_replies?thread_id=eq.'+encodeURIComponent(threadId),{method:'PATCH',headers:db,body:JSON.stringify({state:'unknown',updated_at:new Date().toISOString()})});return;}
+ await fetch(base+'/rest/v1/meta_auto_replies?thread_id=eq.'+encodeURIComponent(threadId),{method:'PATCH',headers:db,body:JSON.stringify({state:'accepted',message_id:result.message_id,updated_at:new Date().toISOString()})});
+ await fetch(base+'/rest/v1/rpc/meta_ingest_message',{method:'POST',headers:db,body:JSON.stringify({p_channel:channel,p_account:account,p_participant:participant,p_name:'',p_conversation:null,p_message:result.message_id,p_direction:'outgoing',p_body:body,p_at:new Date().toISOString()})});
+}
 Deno.serve(async(req:Request)=>{
  const out=(status:number,text:string)=>new Response(text,{status,headers:{'Content-Type':'text/plain'}});
  const verify=Deno.env.get('WHATSAPP_VERIFY_TOKEN'),secret=Deno.env.get('META_APP_SECRET');
@@ -37,6 +48,8 @@ Deno.serve(async(req:Request)=>{
     const service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const saved=await fetch(Deno.env.get('SUPABASE_URL')+'/rest/v1/rpc/meta_ingest_message',{method:'POST',headers:{apikey:service,Authorization:'Bearer '+service,'Content-Type':'application/json'},body:JSON.stringify({p_channel:channel,p_account:account,p_participant:participant,p_name:'',p_conversation:null,p_message:message.mid,p_direction:outgoing?'outgoing':'incoming',p_body:String(message.text||'['+(message.attachments?.[0]?.type||'Media')+' message]').slice(0,10000),p_at:new Date(event.timestamp).toISOString()})});
     if(!saved.ok)return out(503,'Please retry');
+    const threadId=await saved.json();
+    if(!outgoing&&typeof threadId==='string')await sendDefaultFirstReply(channel,account,participant,threadId);
    }
   }return out(200,'Received');
  }catch{return out(400,'Invalid event');}
