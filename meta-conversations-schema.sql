@@ -33,7 +33,7 @@ drop policy if exists meta_attempts_staff on public.meta_reply_attempts;
 create policy meta_attempts_staff on public.meta_reply_attempts for select to authenticated using(exists(select 1 from public.crm_staff where user_id=auth.uid()));
 create or replace function public.meta_ingest_message(p_channel text,p_account text,p_participant text,p_name text,p_conversation text,p_message text,p_direction text,p_body text,p_at timestamptz)
 returns uuid language plpgsql security definer set search_path=public,pg_temp as $$
-declare thread uuid;
+declare thread uuid; linked uuid; display_name text;
 begin
  if p_channel not in ('facebook','instagram') or p_account='' or p_participant='' or p_message='' or p_at>now()+interval '5 minutes' then raise exception 'Invalid message';end if;
  insert into meta_threads(channel,account_id,participant_id,participant_name,meta_conversation_id,latest_at)
@@ -42,6 +42,28 @@ begin
  participant_name=case when excluded.participant_name<>'' then excluded.participant_name else meta_threads.participant_name end,
  meta_conversation_id=coalesce(excluded.meta_conversation_id,meta_threads.meta_conversation_id) returning id into thread;
  insert into meta_messages(thread_id,message_id,direction,body,event_at) values(thread,p_message,p_direction,left(coalesce(p_body,''),10000),p_at) on conflict(thread_id,message_id) do nothing;
+
+ -- Meta DMs do not include a reliable phone number, email or business profile.
+ -- Create one pipeline record only for a new incoming enquiry and keep those
+ -- unknown fields explicit until a staff member confirms them.
+ if p_direction='incoming' then
+  select lead_id into linked from meta_threads where id=thread;
+  if linked is null then
+   display_name:=coalesce(nullif(left(trim(p_name),100),''),initcap(p_channel)||' enquiry');
+   insert into public.leads(name,phone,company,category,email,source,notes,attribution)
+   values(display_name,'','Not yet supplied','Not yet supplied','',
+     'Meta '||initcap(p_channel)||' conversation',
+     'New inbound Meta conversation. Contact details pending in CRM inbox.',
+     jsonb_build_object('meta_thread_id',thread,'meta_channel',p_channel,'meta_participant_id',p_participant,'meta_first_message_at',p_at))
+   returning id into linked;
+   update public.meta_threads set lead_id=linked where id=thread and lead_id is null;
+  else
+   update public.leads
+   set name=case when (name=initcap(p_channel)||' enquiry' or name='') and p_name<>'' then left(trim(p_name),100) else name end,
+       attribution=coalesce(attribution,'{}'::jsonb)||jsonb_build_object('meta_last_message_at',p_at)
+   where id=linked;
+  end if;
+ end if;
  return thread;
 end $$;
 revoke all on function public.meta_ingest_message(text,text,text,text,text,text,text,text,timestamptz) from public,anon,authenticated;
