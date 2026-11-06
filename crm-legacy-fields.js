@@ -20,7 +20,7 @@ const groupFilter=document.createElement('select');groupFilter.id='group-filter'
 groupFilter.append(new Option('All groups',''),new Option('Unassigned','__unassigned__'));
 filterBar.insertBefore(groupFilter,document.querySelector('#queue-filter'));
 dispositionFilter.hidden=true;groupFilter.hidden=true;
-dispositionFilter.addEventListener('change',render);groupFilter.addEventListener('change',render);
+dispositionFilter.addEventListener('change',resetLeadPage);groupFilter.addEventListener('change',resetLeadPage);
 
 async function loadTeamGroups(){
  if(demo)return;

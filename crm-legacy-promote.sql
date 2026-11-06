@@ -110,7 +110,7 @@ with source as (
   where backup_sha256='dcac5421116d7fe0238244921708cdabc39352d285387c15a475587759f66ece'
     and source_table='crm_leads'
 ), normalized as (
-  select source_id,email,case when length(raw_phone)=10 then '91'||raw_phone else raw_phone end phone
+  select source_id,payload,email,case when length(raw_phone)=10 then '91'||raw_phone else raw_phone end phone
   from source
 ), ranked as (
   select *,count(*) over(partition by phone) source_phone_count,
