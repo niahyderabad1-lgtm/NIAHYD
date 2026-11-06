@@ -4,6 +4,8 @@ Enquiries: +91 7997994493. Broadcast sender: +91 7997994495.
 
 The signed incoming webhook is deployed and a real incoming message was verified on 7 October 2026. Staff can load incoming messages and delivery events in the CRM. Free-text replies require a customer message within the last 24 hours; this is enforced on the server.
 
+Structured WhatsApp Instant Form replies now link to CRM leads. Apply `whatsapp-form-lead-sync.sql` after the WhatsApp and CRM schemas. It backfills existing form replies and links future replies by phone, filling only missing contact details on an existing lead. It leaves ordinary chats, delivery receipts, stages, payment status and owners alone. The original message time and WhatsApp event key are retained in lead attribution. A form enquiry does not establish marketing opt-in.
+
 Broadcast workflow:
 1. Sign in with approved staff access.
 2. Record each contact's marketing opt-in with evidence. A guest enquiry alone is not marketing consent.
