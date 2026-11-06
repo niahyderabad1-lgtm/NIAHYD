@@ -18,7 +18,7 @@ Add these under **Worker → Settings → Variables and Secrets**. Never put val
 | `SUPABASE_URL` | `https://mtrfipelhvuvqkjwgiif.supabase.co` |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server-only Supabase database access |
 | `WHATSAPP_ACCESS_TOKEN` | Long-lived Meta system-user token |
-| `WHATSAPP_WABA_ID` | `28487797780889906` |
+| `WHATSAPP_WABA_ID` | `1747796306429948` |
 
 `ALLOWED_ORIGIN` is a non-secret setting already present in `wrangler.toml`.
 

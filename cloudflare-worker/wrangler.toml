@@ -8,7 +8,7 @@ workers_dev = true
 [vars]
 ALLOWED_ORIGIN = "https://hyderabad.networkinaction.info"
 SUPABASE_URL = "https://mtrfipelhvuvqkjwgiif.supabase.co"
-WHATSAPP_WABA_ID = "28487797780889906"
+WHATSAPP_WABA_ID = "1747796306429948"
 SUPABASE_PUBLISHABLE_KEY = "sb_publishable_zv-qxckLOIND2xmCarlkbQ_Yp-RTy8j"
 
 [triggers]
