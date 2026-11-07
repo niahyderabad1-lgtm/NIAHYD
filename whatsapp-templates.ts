@@ -39,13 +39,19 @@ Deno.serve(async(req:Request)=>{
    if(!types[input.mime]||typeof input.data!=='string'||typeof input.filename!=='string')return reply(400,{error:'Upload JPG, PNG, MP4 or PDF'});
    let bytes;try{bytes=Uint8Array.from(atob(input.data),c=>c.charCodeAt(0));}catch{return reply(400,{error:'Invalid file data'});}
    if(!bytes.length||bytes.length>5*1024*1024)return reply(413,{error:'Media must be 5 MB or smaller'});
+   const number=await niaSecret('WHATSAPP_PHONE_NUMBER_ID');
+   if(!/^\d+$/.test(number||''))return reply(503,{error:'WhatsApp sender number is not configured'});
    const uploadBase='https://graph.facebook.com/v25.0/';
-   const session=await fetch(uploadBase+'28360688760263698/uploads?file_length='+bytes.length+'&file_type='+encodeURIComponent(input.mime),{method:'POST',headers:metaHeaders,signal:AbortSignal.timeout(15000)});const sd=await session.json();if(!session.ok||!sd.id)return reply(400,{error:'Meta could not create media upload (code '+(sd.error?.code||'unknown')+')'});
-   if(typeof sd.id!=='string'||!sd.id.startsWith('upload:'))return reply(503,{error:'Unexpected upload session'});
-   const uploaded=await fetch(uploadBase+sd.id,{method:'POST',headers:{Authorization:'OAuth '+token,file_offset:'0','Content-Type':input.mime},body:bytes,signal:AbortSignal.timeout(20000)});const ud=await uploaded.json();if(!uploaded.ok||!ud.h)return reply(400,{error:'Meta example upload failed (code '+(ud.error?.code||'unknown')+')'});
+   let handle='';
+   if(input.purpose!=='send'){
+    const session=await fetch(uploadBase+'28360688760263698/uploads?file_length='+bytes.length+'&file_type='+encodeURIComponent(input.mime),{method:'POST',headers:metaHeaders,signal:AbortSignal.timeout(15000)});const sd=await session.json();if(!session.ok||!sd.id)return reply(400,{error:'Meta could not create template example upload (code '+(sd.error?.code||'unknown')+')'});
+    if(typeof sd.id!=='string'||!sd.id.startsWith('upload:'))return reply(503,{error:'Unexpected upload session'});
+    const uploaded=await fetch(uploadBase+sd.id,{method:'POST',headers:{Authorization:'OAuth '+token,file_offset:'0','Content-Type':input.mime},body:bytes,signal:AbortSignal.timeout(20000)});const ud=await uploaded.json();if(!uploaded.ok||!ud.h)return reply(400,{error:'Meta example upload failed (code '+(ud.error?.code||'unknown')+')'});
+    handle=ud.h;
+   }
    const form=new FormData();form.append('messaging_product','whatsapp');form.append('type',input.mime);form.append('file',new Blob([bytes],{type:input.mime}),input.filename.slice(0,200));
-   const sentMedia=await fetch(uploadBase+'1266052096601533/media',{method:'POST',headers:{Authorization:'Bearer '+token},body:form,signal:AbortSignal.timeout(20000)});const md=await sentMedia.json();if(!sentMedia.ok||!md.id)return reply(400,{error:'Meta send-media upload failed (code '+(md.error?.code||'unknown')+')'});
-   const saved=await fetch(base+'/rest/v1/wa_media',{method:'POST',headers:{...db,Prefer:'return=representation'},body:JSON.stringify({meta_media_id:md.id,handle:ud.h,kind:types[input.mime],filename:input.filename.slice(0,200),created_by:user.id})});if(!saved.ok)return reply(503,{error:'Cannot save media reference'});return reply(200,{media:(await saved.json())[0]});
+   const sentMedia=await fetch(uploadBase+number+'/media',{method:'POST',headers:{Authorization:'Bearer '+token},body:form,signal:AbortSignal.timeout(20000)});const md=await sentMedia.json();if(!sentMedia.ok||!md.id)return reply(400,{error:'Meta send-media upload failed (code '+(md.error?.code||'unknown')+'). '+(md.error?.error_user_msg||md.error?.message||'Check the sender connection.')});
+   const saved=await fetch(base+'/rest/v1/wa_media',{method:'POST',headers:{...db,Prefer:'return=representation'},body:JSON.stringify({meta_media_id:md.id,handle,kind:types[input.mime],filename:input.filename.slice(0,200),created_by:user.id})});if(!saved.ok)return reply(503,{error:'Cannot save media reference'});return reply(200,{media:(await saved.json())[0]});
   }
   if(input.action==='sync'){
    let after='',items:any[]=[];
@@ -65,7 +71,7 @@ Deno.serve(async(req:Request)=>{
   if(input.action==='draft'){
    const {name,body,header='',footer='',url='',button='Visit page'}=input;
    if(typeof name!=='string'||! /^[a-z][a-z0-9_]{2,511}$/.test(name)||typeof body!=='string'||!body.trim()||body.length>1024||typeof header!=='string'||header.length>60||header.includes('{{')||typeof footer!=='string'||footer.length>60||footer.includes('{{')||body.replaceAll('{{1}}','').includes('{{'))return reply(400,{error:'Use lowercase template names and only {{1}} for the recipient name. Check text lengths.'});
-   let media=null;if(input.media_id){const found=await fetch(base+'/rest/v1/wa_media?id=eq.'+encodeURIComponent(input.media_id)+'&created_by=eq.'+user.id+'&select=*',{headers:db});if(!found.ok||!(media=(await found.json())[0]))return reply(400,{error:'Upload media before saving the draft'});}
+   let media=null;if(input.media_id){const found=await fetch(base+'/rest/v1/wa_media?id=eq.'+encodeURIComponent(input.media_id)+'&created_by=eq.'+user.id+'&select=*',{headers:db});if(!found.ok||!(media=(await found.json())[0])||!media.handle)return reply(400,{error:'Upload a template example before saving the draft'});}
    const components:any[]=[];if(media)components.push({type:'HEADER',format:media.kind,example:{header_handle:[media.handle]}});else if(header)components.push({type:'HEADER',format:'TEXT',text:header});
    components.push({type:'BODY',text:body,...(body.includes('{{1}}')?{example:{body_text:[['Guest']]}}:{})});
    if(footer)components.push({type:'FOOTER',text:footer});
