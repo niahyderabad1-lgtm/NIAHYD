@@ -32,3 +32,33 @@ body:not(.legacy-fields-ready) #pipeline-panel .legacy-disposition{display:none}
 }
 
 #broadcast-selection-count{font-weight:600;color:#155347;white-space:nowrap}#pipeline-panel input[type=checkbox]{width:18px;height:18px;accent-color:#155347}.broadcast-review-list{max-height:180px;overflow:auto;white-space:pre-line;border:1px solid #dce2ea;border-radius:8px;padding:10px;margin:12px 0;font-size:13px}
+
+/* Keep calls, outcomes and the next callback together at the top of a lead. */
+#editor>header{position:sticky;top:-28px;z-index:3;margin:-28px -28px 12px;padding:23px 28px 15px;background:#fff;border-bottom:1px solid #e2e9e6}
+.lead-quick-panel{border:1px solid #d6e6de!important;border-radius:12px;background:#f3f9f6;padding:18px!important;margin:0 0 24px!important}
+.lead-quick-panel>h3,.profile-title{font-size:18px;margin:0 0 14px}
+.quick-lead-links{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px}
+.quick-lead-links .link-button{display:inline-flex;align-items:center;min-height:44px;background:#fff}
+.quick-lead-links .link-button[hidden]{display:none!important}
+.lead-quick-panel .fields{gap:0 12px}
+.lead-quick-panel label{margin-bottom:12px}
+.lead-quick-panel textarea{min-height:70px}
+.lead-quick-panel .primary{width:100%;min-height:44px}
+.lead-history{border-top:1px solid #d6e6de;margin-top:15px;padding-top:13px}
+.lead-history summary{cursor:pointer;font-weight:700}
+.lead-history #activity-list{max-height:280px;overflow:auto}
+#edit-form{border-top:1px solid #e2e9e6;padding-top:20px}
+@media(max-width:700px){
+ #editor>header{top:-18px;margin:-18px -18px 12px;padding:16px 18px 12px}
+ .lead-quick-panel{padding:14px!important}
+ .lead-quick-panel .fields{grid-template-columns:1fr 1fr;gap:0 8px}
+ .lead-quick-panel .quick-follow-up-fields label:nth-child(2){grid-column:1/-1}
+ #pipeline-panel tbody tr{display:grid;grid-template-columns:26px minmax(0,1fr);gap:0 9px;padding:10px 14px}
+ #pipeline-panel td{grid-column:1/-1;padding:7px 0}
+ #pipeline-panel td[data-label="Broadcast"]{grid-column:1;grid-row:1;align-self:center;padding:3px 0}
+ #pipeline-panel td[data-label="Lead / Business"]{grid-column:2;grid-row:1;display:block;padding:3px 0 8px;border-top:0;text-align:left}
+ #pipeline-panel td[data-label="Lead / Business"]::before{display:none}
+ #pipeline-panel td[data-label="Received"],#pipeline-panel td[data-label="Category"],#pipeline-panel td[data-label="Owner"],#pipeline-panel td.empty-value:not([data-label="Broadcast"]),#pipeline-panel td.quiet-value{display:none}
+ #pipeline-panel td[data-label="Details"]{justify-content:flex-end;padding-bottom:2px}
+ #pipeline-panel td[data-label="Details"]::before{display:none}
+}

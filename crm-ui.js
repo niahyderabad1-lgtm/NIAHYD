@@ -9,7 +9,7 @@ const pageTitle=$('main h1');
 function activeNav(b,title){for(const item of uiNav.children)item.setAttribute('aria-selected',String(item===b));pageTitle.textContent=title;}
 const workspaceObserver=new MutationObserver(()=>{uiNav.hidden=$('#workspace').hidden;});workspaceObserver.observe($('#workspace'),{attributes:true,attributeFilter:['hidden']});uiNav.hidden=$('#workspace').hidden;
 $('#pipeline-tab').addEventListener('click',()=>{activeNav($('#pipeline-tab'),'Guest leads');$('#queue-filter').value='';render();});
-followNav.addEventListener('click',()=>{switchCrmTab(false);activeNav(followNav,'Follow-ups');$('#queue-filter').value='today';render();});
+followNav.addEventListener('click',()=>{switchCrmTab(false);activeNav(followNav,'Follow-ups');$('#queue-filter').value='due';$('#lead-sort').value='followup';resetLeadPage();});
 $('#wa-broadcast-tab').addEventListener('click',()=>{activeNav($('#wa-broadcast-tab'),'WhatsApp broadcasts');showBroadcastSection('campaigns');});
 inboxNav.addEventListener('click',()=>{switchCrmTab(true);activeNav(inboxNav,'Conversations');showBroadcastSection('conversations');});
 // Keep the existing controls together in dedicated workspaces.
@@ -40,6 +40,27 @@ const originalRender=render;render=function(){for(const [id,key,label] of [['own
  originalRender();const query=$('#search').value.toLowerCase(),stage=$('#stage-filter').value;const matching=leads.filter(l=>uiLeadMatches(l)&&queueMatches(l)&&(!stage||l.stage===stage)&&[l.name,l.company,l.category,l.phone,l.email].some(v=>(v||'').toLowerCase().includes(query))).length;count.textContent=matching+' matching leads · '+leads.length+' total';for(const row of $('#rows').children){for(const idx of [3,5]){const td=row.children[idx],badge=uiNode('span','status-badge '+(td.textContent==='paid'?'badge-approved':'badge-neutral'),td.textContent);td.replaceChildren(badge);}}};
 // A side drawer keeps list context visible while editing a lead.
 $('#editor').classList.add('lead-drawer');
+// Put the next conversation where staff can act on it without scrolling through a profile.
+const editor=$('#editor'),profileForm=$('#edit-form'),editorHeader=profileForm.querySelector('header');
+editor.prepend(editorHeader);
+const activitySection=$('#activity-section'),activityForm=$('#activity-form'),activityList=$('#activity-list');
+editorHeader.after(activitySection);
+const quickTitle=uiNode('h3','','Next conversation');
+const quickLinks=uiNode('div','quick-lead-links');
+quickLinks.append($('#call-lead'),$('#whatsapp'));
+const quickFields=uiNode('div','fields quick-follow-up-fields');
+function quickSelect(id,title,original){const label=uiNode('label','',title),select=uiNode('select');select.id=id;for(const option of profileForm.elements[original].options)select.append(new Option(option.text,option.value));label.append(select);quickFields.append(label);return select;}
+const quickStage=quickSelect('quick-stage','Stage','stage');
+const callbackLabel=uiNode('label','','Next callback · India time');
+const quickCallback=uiNode('input');quickCallback.id='quick-next-follow-up';quickCallback.type='datetime-local';callbackLabel.append(quickCallback);quickFields.append(callbackLabel);
+const quickAction=quickSelect('quick-next-action','Next action','next_action');
+for(const [quick,original] of [[quickStage,'stage'],[quickCallback,'next_follow_up_at'],[quickAction,'next_action']]){quick.addEventListener('change',()=>{profileForm.elements[original].value=quick.value;});profileForm.elements[original].addEventListener('change',()=>{quick.value=profileForm.elements[original].value;});}
+activityForm.querySelector('.hint').textContent='Log the outcome and set a callback here. This updates the lead and its conversation history.';
+activityForm.querySelector('.fields').after(quickFields);
+const history=uiNode('details','lead-history'),historySummary=uiNode('summary','','Conversation history');history.append(historySummary,activityList);
+activitySection.replaceChildren(quickTitle,quickLinks,activityForm,history);
+activitySection.classList.add('lead-quick-panel');
+const profileTitle=uiNode('h3','profile-title','Lead profile');profileForm.prepend(profileTitle);
 // Reusable WhatsApp-style previews use textContent for all submitted content.
 function messagePreview(target,components,file){target.replaceChildren();target.className='message-preview';const phone=uiNode('div','wa-phone');phone.append(uiNode('div','wa-phone-title','NIA Hyderabad · 7997994495'));const bubble=uiNode('div','wa-bubble');phone.append(bubble);for(const c of components||[]){if(c.type==='HEADER'&&c.format!=='TEXT'){const media=uiNode('div','wa-media');if(file&&c.format==='IMAGE'){const img=uiNode('img');img.src=URL.createObjectURL(file);img.alt='Selected image header';img.onload=()=>URL.revokeObjectURL(img.src);media.append(img);}else if(file&&c.format==='VIDEO'){const video=uiNode('video');video.controls=true;video.src=URL.createObjectURL(file);video.onloadeddata=()=>URL.revokeObjectURL(video.src);media.append(video);}else media.textContent=c.format==='DOCUMENT'?'▤ '+(file?.name||'Document header'):(c.format==='VIDEO'?'▶ Video header':'▧ Image header');bubble.append(media);}if(c.text)bubble.append(uiNode(c.type==='FOOTER'?'small':'p',c.type==='HEADER'?'wa-header':'',c.text.replaceAll('{{1}}','Guest')));if(c.buttons)for(const b of c.buttons)bubble.append(uiNode('div','wa-message-button',b.text));}target.append(phone,uiNode('p','hint','Preview uses “Guest” as the example name. Final content follows the approved Meta template.'));}
 function builderPreview(){const f=new FormData($('#wa-template-form')),kind=f.get('media_type'),cs=[];if(kind!=='TEXT')cs.push({type:'HEADER',format:kind});else if(f.get('header'))cs.push({type:'HEADER',format:'TEXT',text:f.get('header')});cs.push({type:'BODY',text:f.get('body')},{type:'FOOTER',text:f.get('footer')});if(f.get('url'))cs.push({type:'BUTTONS',buttons:[{text:f.get('button')}]});messagePreview($('#wa-template-preview'),cs,$('#wa-template-media').files[0]);}
@@ -66,4 +87,4 @@ for(const [value,label] of [['oldest','Oldest received first'],['company','Busin
 sort.options[0].text='Newest received first';
 uiLeadSort=function(a,b){const mode=$('#lead-sort')?.value;if(mode==='name')return (a.name||'').localeCompare(b.name||'');if(mode==='company')return (a.company||'').localeCompare(b.company||'');if(mode==='phone')return (a.phone||'').localeCompare(b.phone||'');if(mode==='stage')return stages.indexOf(a.stage)-stages.indexOf(b.stage);if(mode==='followup')return (a.next_follow_up_at||a.follow_up||'9999').localeCompare(b.next_follow_up_at||b.follow_up||'9999');return mode==='oldest'?receivedAt(a).localeCompare(receivedAt(b)):receivedAt(b).localeCompare(receivedAt(a));};
 const leadHeader=$('#rows').closest('table').querySelector('thead tr');const receivedHeader=uiNode('th','','Received');leadHeader.insertBefore(receivedHeader,leadHeader.children[3]);
-const renderWithReceived=render;render=function(){renderWithReceived();const query=$('#search').value.toLowerCase(),stage=$('#stage-filter').value;const visible=leads.filter(l=>uiLeadMatches(l)&&queueMatches(l)&&(!stage||l.stage===stage)&&[l.name,l.company,l.category,l.phone,l.email].some(v=>(v||'').toLowerCase().includes(query))).sort(uiLeadSort);[...$('#rows').children].forEach((row,index)=>{const lead=visible[leadPage*LEAD_PAGE_SIZE+index],received=uiNode('td','',receivedAt(lead)?indiaTime(receivedAt(lead)):'—');received.dataset.label='Received';row.insertBefore(received,row.children[3]);});};
+const renderWithReceived=render;render=function(){renderWithReceived();const query=$('#search').value.toLowerCase(),stage=$('#stage-filter').value;const visible=leads.filter(l=>uiLeadMatches(l)&&queueMatches(l)&&(!stage||l.stage===stage)&&[l.name,l.company,l.category,l.phone,l.email].some(v=>(v||'').toLowerCase().includes(query))).sort(uiLeadSort);[...$('#rows').children].forEach((row,index)=>{const lead=visible[leadPage*LEAD_PAGE_SIZE+index],received=uiNode('td','',receivedAt(lead)?indiaTime(receivedAt(lead)):'—');received.dataset.label='Received';row.insertBefore(received,row.children[3]);for(const td of row.children){const content=td.textContent.trim();td.classList.toggle('empty-value',!content||content==='—');td.classList.toggle('quiet-value',(td.dataset.label==='Payment'&&content==='unpaid')||(td.dataset.label==='Disposition'&&['Open','Not set'].includes(content)));}});};

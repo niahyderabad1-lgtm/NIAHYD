@@ -15,7 +15,7 @@ document.querySelector('#edit-form .fields').after(memberProfile);
 const historySection=document.createElement('section');
 historySection.id='lead-change-section';
 historySection.innerHTML='<h3>Change history</h3><div id="lead-change-list" role="status"></div>';
-document.querySelector('#activity-section').after(historySection);
+document.querySelector('#edit-form').after(historySection);
 const priorEdit=edit;
 edit=function(lead){priorEdit(lead);historySection.hidden=!lead;if(lead)loadChangeHistory(lead.id);};
 async function loadChangeHistory(id){const list=document.querySelector('#lead-change-list');list.textContent='Loading changes…';try{
