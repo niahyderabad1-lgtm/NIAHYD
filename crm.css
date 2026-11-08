@@ -32,6 +32,7 @@ body:not(.legacy-fields-ready) #pipeline-panel .legacy-disposition{display:none}
 }
 
 #broadcast-selection-count{font-weight:600;color:#155347;white-space:nowrap}#pipeline-panel input[type=checkbox]{width:18px;height:18px;accent-color:#155347}.broadcast-review-list{max-height:180px;overflow:auto;white-space:pre-line;border:1px solid #dce2ea;border-radius:8px;padding:10px;margin:12px 0;font-size:13px}
+.flagged-audience{padding:14px 16px;border:1px solid #b7d8cf;background:#f1faf6;border-radius:10px;margin:12px 0}.flagged-audience p{margin:8px 0 0;white-space:pre-line;max-height:180px;overflow:auto}.flagged-audience .hint{color:#356558}
 #wa-template-rows td:last-child{min-width:250px}.template-media-file{max-width:230px;padding:8px;font-size:12px;line-height:1.3}
 
 /* Keep calls, outcomes and the next callback together at the top of a lead. */
