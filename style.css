@@ -30,3 +30,4 @@ header nav .button{box-shadow:0 8px 20px #ef762238;transition:transform .2s ease
 
 /* The visitor page starts in office-first mode until payment availability is verified. */
 [data-paid-only][hidden],button[data-route=payment][hidden]{display:none!important}
+[data-office-only][hidden]{display:none!important}
