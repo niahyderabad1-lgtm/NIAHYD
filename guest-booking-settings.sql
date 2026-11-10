@@ -3,8 +3,10 @@ begin;
 create table if not exists public.guest_booking_settings (
  id smallint primary key default 1 check (id=1),
  accept_payments boolean not null default true,
+ override_cutoff boolean not null default false,
  updated_at timestamptz not null default now()
 );
+alter table public.guest_booking_settings add column if not exists override_cutoff boolean not null default false;
 insert into public.guest_booking_settings(id,accept_payments) values(1,true) on conflict(id) do nothing;
 alter table public.guest_booking_settings enable row level security;
 revoke all on public.guest_booking_settings from public,anon,authenticated;
@@ -22,4 +24,17 @@ begin
 end $$;
 revoke all on function public.set_guest_payment_acceptance(boolean) from public,anon,authenticated;
 grant execute on function public.set_guest_payment_acceptance(boolean) to authenticated;
+create or replace function public.set_guest_payment_settings(p_enabled boolean,p_override boolean)
+returns public.guest_booking_settings language plpgsql security definer set search_path='' as $$
+declare result public.guest_booking_settings;
+begin
+ if not public.nia_config_is_admin() then raise exception 'Administrator access required' using errcode='42501'; end if;
+ if p_enabled is null or p_override is null then raise exception 'Choose payment settings' using errcode='22023'; end if;
+ update public.guest_booking_settings
+ set accept_payments=p_enabled,override_cutoff=(p_enabled and p_override),updated_at=now()
+ where id=1 returning * into result;
+ return result;
+end $$;
+revoke all on function public.set_guest_payment_settings(boolean,boolean) from public,anon,authenticated;
+grant execute on function public.set_guest_payment_settings(boolean,boolean) to authenticated;
 commit;
